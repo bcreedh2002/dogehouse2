@@ -1,0 +1,5 @@
+# Previous local database remains private and is never staged for Pages.
+.data/
+node_modules/
+_site/
+__pycache__/

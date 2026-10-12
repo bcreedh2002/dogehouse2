@@ -1,0 +1,19 @@
+.account-launch {border:1px solid var(--line);background:var(--white);padding:9px 13px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.account-dialog {width:min(540px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid var(--line);border-radius:22px;padding:28px;background:var(--white);color:var(--ink)}
+.account-dialog::backdrop {background:rgba(23,23,23,.55)}
+.account-dialog h2 {margin:0;font-family:Manrope,sans-serif;font-size:28px;letter-spacing:-.03em}
+.account-dialog p {color:var(--muted);font-size:14px}
+.account-heading {display:flex;justify-content:space-between;align-items:center;gap:16px}
+.account-close {border:0;background:none;font-size:26px;cursor:pointer;padding:4px 10px}
+.account-dialog label {display:block;font-weight:700;font-size:13px;margin:16px 0 6px}
+.account-dialog input {display:block;width:100%;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:12px}
+.account-actions {display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.account-secondary {border:1px solid var(--line);background:transparent}
+.account-dialog [hidden] {display:none!important}
+.account-status {min-height:22px;white-space:pre-wrap}
+.saved-builds {list-style:none;padding:0;margin:20px 0}
+.saved-builds li {padding:14px 0;border-top:1px solid var(--line)}
+.saved-builds strong {display:block;overflow-wrap:anywhere}
+.saved-builds small {color:var(--muted)}
+.saved-builds button {cursor:pointer;border:1px solid var(--line);border-radius:999px;background:var(--paper);padding:7px 13px;margin:10px 8px 0 0}
+@media(max-width:760px){.site-header{flex-wrap:wrap;height:auto;min-height:70px;padding-top:12px;padding-bottom:12px}.account-dialog{padding:22px}.account-launch{font-size:12px;padding:8px 10px}}

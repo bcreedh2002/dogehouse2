@@ -880,6 +880,7 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 #page-builder:has(#palette-custom:checked) #previewHouse>.house-roof,#page-builder:has(#palette-custom:checked) #previewHouse>.house-trim{display:block!important}
 #route-review:checked ~ #page-builder .preview-column{display:none!important}
 </style>
+<link rel="stylesheet" href="accounts.css">
 </head>
 <body>
 <noscript><p style="padding:16px;margin:0;background:#fffdf8">Enable JavaScript to customize and prepare a build request, or email <a href="mailto:salesandinfo@thedogehouse.com">salesandinfo@thedogehouse.com</a>.</p></noscript>
@@ -1165,6 +1166,37 @@ $('fulfillment').addEventListener('change',updateFulfillment);
 function spec(){updateAddons();return ['DogeHouse — Medium — $300','Add-ons: '+([$('addonNeon').checked?'Faux grass wall + neon sign — $50':null,$('addonWindow').checked?'Window — $30':null,$('addonGraphic').checked?'Custom graphic — $20':null].filter(Boolean).join(', ')||'None'), 'Build total: $'+addonTotal()+' (delivery extra if selected)', 'Neon text: '+($('addonNeon').checked?$('neonText').value.trim():'Not selected'), 'Graphic idea: '+($('addonGraphic').checked?$('graphicNotes').value.trim():'Not selected'),'Customer: '+$('customerName').value.trim(),'Email: '+$('customerEmail').value.trim(),'Dog name: '+($('dogName').value.trim()||'DOGEHOUSE'),'House color: '+$('bodyColor').value,'Trim color: '+$('trimColor').value,'Color notes: '+$('colorRequest').value,'Fulfillment: '+$('fulfillment').value,'Location / questions: '+$('notes').value,'Exterior wall footprint: 33 × 34 inches; interior: 32 × 33 inches','Walls: 24 inches high, 0.5 inches thick','Doorway: 13.75 inches wide × 20.75 inches high at peak','Legs, custom color, nameplate and free shipping included. Approximately four-week build time. Delivery costs extra.'].join('\n').replace(/\\n/g,'\n');}
 $('neonText').addEventListener('invalid',event=>{event.preventDefault();renderRoute('addons');$('neonText').focus();});
 $('requestForm').addEventListener('submit',e=>{e.preventDefault();if(!addonsValid())return;const href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('Medium DogeHouse build request')+'&body='+encodeURIComponent(spec());location.href=href;$('requestStatus').textContent='Your email app should open with your build details. Press Send there to submit. If it does not open, download the details and email salesandinfo@thedogehouse.com.';});
-$('moduleIdeaForm').addEventListener('submit',e=>{e.preventDefault();const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}location.href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('DogeHouse module idea')+'&body='+encodeURIComponent(idea);$('ideaStatus').textContent='Your email app should open. Press Send there to share your idea. If it does not open, use Copy idea and email us directly.';});$('copyIdea').addEventListener('click',async()=>{const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}await copyText(idea,$('ideaStatus'));if($('ideaStatus').textContent.startsWith('Copy is unavailable'))$('ideaStatus').textContent='Select and copy your idea from the field, then email salesandinfo@thedogehouse.com.';});buildFields.concat(addonFields).forEach(id=>{['input','change'].forEach(event=>$(id).addEventListener(event,saveBuild));});restoreBuild();restoringBuild=false;updateAddons();updateFulfillment();color();name();routeFromHash(false);})();
-</script></body>
+$('moduleIdeaForm').addEventListener('submit',e=>{e.preventDefault();const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}location.href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('DogeHouse module idea')+'&body='+encodeURIComponent(idea);$('ideaStatus').textContent='Your email app should open. Press Send there to share your idea. If it does not open, use Copy idea and email us directly.';});$('copyIdea').addEventListener('click',async()=>{const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}await copyText(idea,$('ideaStatus'));if($('ideaStatus').textContent.startsWith('Copy is unavailable'))$('ideaStatus').textContent='Select and copy your idea from the field, then email salesandinfo@thedogehouse.com.';});buildFields.concat(addonFields).forEach(id=>{['input','change'].forEach(event=>$(id).addEventListener(event,saveBuild));});restoreBuild();restoringBuild=false;updateAddons();updateFulfillment();color();name();routeFromHash(false);
+window.DogeHouseBuild={
+ read(){const values={},addons={};buildFields.forEach(id=>values[id]=$(id).value);addonFields.forEach(id=>addons[id]=$(id).checked);return {version:1,values,addons,palette:document.querySelector('[name="palette-state"]:checked').id};},
+ load(build){
+  if(!build||build.version!==1||!build.values||!build.addons||!['palette-navy','palette-red','palette-split','palette-custom'].includes(build.palette)||buildFields.some(id=>typeof build.values[id]!=='string'||build.values[id].length>10000)||addonFields.some(id=>typeof build.addons[id]!=='boolean')||['bodyColor','trimColor'].some(id=>!/^#[0-9a-f]{6}$/i.test(build.values[id]))||!Array.from($('fulfillment').options).some(option=>option.value===build.values.fulfillment))throw Error('This saved build has an unsupported format.');
+  sessionStorage.setItem('dogehouse-build',JSON.stringify(build));restoringBuild=true;restoreBuild();restoringBuild=false;updateAddons();updateFulfillment();color();name();navigate('customize');
+ }
+};})();
+</script>
+<dialog id="accountDialog" class="account-dialog" aria-labelledby="accountTitle">
+  <div class="account-heading"><h2 id="accountTitle">Your DogeHouse builds</h2><button type="button" class="account-close" aria-label="Close account dialog">×</button></div>
+  <p id="accountIntro">Sign in to save your builds and pick them up on any device.</p>
+  <form id="accountAuthForm">
+    <label for="accountEmail">Email</label><input id="accountEmail" type="email" autocomplete="email" required maxlength="254">
+    <label for="accountPassword">Password</label><input id="accountPassword" type="password" autocomplete="current-password" required minlength="8" maxlength="128">
+    <div class="account-actions"><button class="button button-primary" type="submit">Sign in</button><button id="accountSignup" class="button account-secondary" type="submit">Create account</button><button id="accountForgot" class="button account-secondary" type="button">Forgot password?</button></div>
+  </form>
+  <form id="accountResetForm" hidden>
+    <label for="accountNewPassword">New password</label><input id="accountNewPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+    <div class="account-actions"><button class="button button-primary" type="submit">Update password</button></div>
+  </form>
+  <section id="accountBuildPanel" hidden aria-label="Saved builds">
+    <p id="accountIdentity"></p>
+    <form id="accountSaveForm"><label for="savedBuildName">Name this build</label><input id="savedBuildName" maxlength="80" required placeholder="Buddy’s porch house"><div class="account-actions"><button class="button button-primary" type="submit">Save current build</button><button id="accountRefresh" class="button account-secondary" type="button">Refresh builds</button></div></form>
+    <ul id="savedBuildList" class="saved-builds"></ul>
+    <button id="accountSignout" class="button account-secondary" type="button">Sign out</button>
+  </section>
+  <p id="accountStatus" class="account-status" role="status" aria-live="polite"></p>
+</dialog>
+<script src="account-config.js"></script>
+<script src="vendor/supabase.js"></script>
+<script src="accounts.js"></script>
+</body>
 </html>
