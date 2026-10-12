@@ -99,3 +99,12 @@ prior Node/SQLite source was archived outside the checkout during this migration
 `@supabase/supabase-js@2.117.3`, installed with npm integrity verification.
 The SDK loads locally without a CDN. See `vendor/README.md` and
 `vendor/THIRD-PARTY-NOTICES.txt` for the checksum and licenses.
+
+## Embedded 3D studio
+
+Customize embeds a local copy of dogehouse1 in a full-width iframe. Body/trim colors, nameplate text, and the window selection sync both ways. Extra studio materials, graphics,
+and placements are retained in browser-session drafts and Supabase saved builds.
+Older builds without studio data reset it to defaults. The studio price list sets the $349 base and option prices throughout review and
+downloads. viewer/pricing.js is the single shared source for those prices. Three.js loads locally. See viewer/README.md
+for source provenance. Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node
+tests/viewer.cjs` for rendering, syncing, and saved-state checks.
