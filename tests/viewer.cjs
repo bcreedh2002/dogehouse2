@@ -1,0 +1,24 @@
+const {chromium}=require('playwright');const assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});try{
+const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:8000/dogehouse-launch.html');await page.locator('#page-home [data-page="customize"]').first().click();
+const frame=page.frameLocator('#studioFrame');await frame.locator('#v canvas').waitFor();
+await page.locator('#dogName').fill('BUDDY');assert.equal(await frame.locator('input[data-k="nameplate"]').inputValue(),'BUDDY');
+await frame.locator('input[data-k="nameplate"]').fill('WALTER');assert.equal(await page.locator('#dogName').inputValue(),'WALTER');
+await frame.locator('[data-vw="1"]').click();await frame.locator('#xr').click();
+await page.locator('#bodyColorHex').fill('#123456');assert.equal(await frame.locator('input[data-k="body"]').inputValue(),'#123456');
+await frame.locator('input[data-k="trim"]').fill('#abcdef');assert.equal(await page.locator('#trimColor').inputValue(),'#abcdef');
+await frame.locator('summary').filter({hasText:'Roof'}).click();await frame.locator('button[data-k="roofType"][data-v="metal"]').click();
+await frame.locator('#nt').fill('<img onerror=x>');await frame.locator('#an').click();assert.equal(await frame.locator('#gl img').count(),0);
+const saved=await page.evaluate(()=>window.DogeHouseBuild.read());assert.equal(saved.studio.roofType,'metal');assert.equal(saved.studio.gfx.length,1);assert.equal(await page.evaluate(()=>window.DogeHouseStudioBridge.pricing().total),494);
+await page.locator('#page-builder .customizer-next [data-page="review"]').click();assert.equal(await page.locator('#page-review .build-total:visible').textContent(),'$494');
+const pending=page.waitForEvent('download');await page.locator('#downloadBuild').click();const download=await pending;const text=require('node:fs').readFileSync(await download.path(),'utf8');assert.ok(text.includes('Build total: $494'));assert.ok(text.includes('Metal roof — $80'));assert.ok(text.includes('Neon'));
+await page.locator('#page-review [data-page="customize"]').click();
+await frame.locator('#rs').click();await page.evaluate(build=>window.DogeHouseBuild.load(build),saved);assert.equal(await frame.locator('button[data-k="roofType"][data-v="metal"]').getAttribute('class'),'on');
+await page.reload();await frame.locator('#v canvas').waitFor();await page.waitForFunction(()=>window.DogeHouseStudioBridge.read()?.roofType==='metal');
+await page.evaluate(()=>location.hash='review');await page.reload();assert.equal(await page.locator('#page-review .build-total:visible').textContent(),'$494');await page.locator('#page-review [data-page="customize"]').click();await frame.locator('#v canvas').waitFor();
+await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/dogehouse-embedded-viewer-mobile.png'});
+assert.ok(await page.locator('#studioFrame').evaluate(el=>el.getBoundingClientRect().width<=innerWidth));
+await page.evaluate(build=>{delete build.studio;window.DogeHouseBuild.load(build)},saved);assert.equal(await frame.locator('button[data-k="roofType"][data-v="plain"]').getAttribute('class'),'on');
+assert.deepEqual(errors,[]);console.log('PASS: WebGL rendering, camera/roof controls, two-way colors/nameplate, graphics escaping, saved state, $494 studio/review/download prices, review reload, legacy builds, and mobile layout.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

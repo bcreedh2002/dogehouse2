@@ -1,0 +1,7 @@
+.studio-embed{margin:0 0 36px}.studio-embed h2{font-family:Manrope,sans-serif;font-size:28px;letter-spacing:-.03em}.studio-embed p{color:var(--muted);max-width:850px}.studio-embed iframe{display:block;width:100%;height:650px;border:1px solid var(--line);border-radius:22px;background:#e9ecf1}#studioStatus{font-size:13px}@media(max-width:760px){.studio-embed iframe{height:800px}.studio-embed h2{font-size:24px}}
+
+#route-builder:checked ~ #page-builder .preview-column{display:none!important}
+@media(min-width:761px){#route-builder:checked ~ #page-builder .builder-layout{grid-template-columns:160px minmax(0,1fr)}}
+
+#page-addons .addons-list,#page-addons .addons-validation,.review-addons{display:none!important}
+.review-row:has(.review-addons){display:none!important}
