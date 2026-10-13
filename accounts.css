@@ -17,3 +17,4 @@
 .saved-builds small {color:var(--muted)}
 .saved-builds button {cursor:pointer;border:1px solid var(--line);border-radius:999px;background:var(--paper);padding:7px 13px;margin:10px 8px 0 0}
 @media(max-width:760px){.site-header{flex-wrap:wrap;height:auto;min-height:70px;padding-top:12px;padding-bottom:12px}.account-dialog{padding:22px}.account-launch{font-size:12px;padding:8px 10px}}
+.design-previews{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.design-previews:empty{display:none}.design-previews img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:#e9ecf1}.save-privacy{font-size:13px}.account-dialog [aria-pressed="true"]{border-color:var(--ink);background:var(--cream)}#ownerSetupStatus{font-size:13px}

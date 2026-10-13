@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix="dogehouse-pages-") as directory:
     checkout = Path(directory)
     for name in ["scripts", "vendor", "viewer"]:
         shutil.copytree(ROOT / name, checkout / name)
-    for name in ["dogehouse-launch.html", "accounts.css", "accounts.js", "viewer-embed.js", "viewer-embed.css"]:
+    for name in ["dogehouse-launch.html", "app.js", "accounts.css", "accounts.js", "viewer-embed.js", "viewer-embed.css"]:
         shutil.copyfile(ROOT / name, checkout / name)
     # Representative private assets must never end up in the artifact.
     (checkout / ".data").mkdir()
@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix="dogehouse-pages-") as directory:
     assert run(SUPABASE_URL="https://user:password@mock.supabase.co", SUPABASE_PUBLISHABLE_KEY="sb_publishable_mock").returncode != 0
     assert run(SUPABASE_URL=valid_url, SUPABASE_PUBLISHABLE_KEY="sb_publishable_mock").returncode == 0
     staged = checkout / "_site"
-    expected = {"viewer-embed.js", "viewer-embed.css", "viewer/index.html", "viewer/pricing.js", "viewer/three.min.js", "viewer/OrbitControls.js", "viewer/THREE-LICENSE", "viewer/README.md", "index.html", "dogehouse-launch.html", "accounts.js", "accounts.css", "account-config.js", ".nojekyll", "vendor/supabase.js", "vendor/THIRD-PARTY-NOTICES.txt", "vendor/README.md"}
+    expected = {"app.js", "viewer/state.js", "viewer-embed.js", "viewer-embed.css", "viewer/index.html", "viewer/pricing.js", "viewer/three.min.js", "viewer/OrbitControls.js", "viewer/THREE-LICENSE", "viewer/README.md", "index.html", "dogehouse-launch.html", "accounts.js", "accounts.css", "account-config.js", ".nojekyll", "vendor/supabase.js", "vendor/THIRD-PARTY-NOTICES.txt", "vendor/README.md"}
     assert {str(p.relative_to(staged)) for p in staged.rglob("*") if p.is_file()} == expected
     assert (staged / "index.html").read_bytes() == (ROOT / "dogehouse-launch.html").read_bytes()
     generated = (staged / "account-config.js").read_text()

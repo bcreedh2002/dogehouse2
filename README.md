@@ -8,7 +8,8 @@ There is no custom application server or SQLite dependency.
 
 1. Create a Supabase project. In its SQL editor, run [`supabase/schema.sql`](supabase/schema.sql).
    It creates `dogehouse_builds`, enables row-level security, and permits users to
-   read, save, and delete only builds owned by their authenticated account.
+   read, save, and delete builds owned by their authenticated account. The optional
+   owner migration below adds read-only access for the DogeHouse team.
 2. Copy the Project URL and **publishable key** from the Supabase project settings
    (a legacy **anon** key also works). These are public browser settings.
    Never use a secret or service-role key; those bypass database access controls.
@@ -89,8 +90,10 @@ private files and rejects unsuitable configuration.
 
 Each save creates a named copy; reopening asks before replacing the current design.
 Saved designs contain customization, add-ons, and entered customer/fulfillment
-information. Row-level database policies enforce ownership independently of the
-browser. Account deletion, MFA, and a management UI are outside this change.
+information. Row-level database policies enforce customer isolation and confirmed owner
+read access independently of the browser. Account deletion and MFA are outside this change. The confirmed owner account
+can review customer designs through the Customer designs tab after the owner
+migration is applied.
 Manage retention and backups in Supabase; availability and limits depend on the
 plan you choose. The old empty local SQLite database is ignored and not deployed;
 prior Node/SQLite source was archived outside the checkout during this migration.
@@ -102,9 +105,63 @@ The SDK loads locally without a CDN. See `vendor/README.md` and
 
 ## Embedded 3D studio
 
-Customize embeds a local copy of dogehouse1 in a full-width iframe. Body/trim colors, nameplate text, and the window selection sync both ways. Extra studio materials, graphics,
+Customize embeds a local copy of dogehouse1 in a full-width iframe. The embedded studio is the only customization interface; old parent color,
+nameplate, schematic-preview, and add-on controls have been removed. Extra studio materials, graphics,
 and placements are retained in browser-session drafts and Supabase saved builds.
 Older builds without studio data reset it to defaults. The studio price list sets the $349 base and option prices throughout review and
 downloads. viewer/pricing.js is the single shared source for those prices. Three.js loads locally. See viewer/README.md
 for source provenance. Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node
 tests/viewer.cjs` for rendering, syncing, and saved-state checks.
+
+## Saved designs, previews, and owner review
+
+Customers choose **Save design**, sign in, name their design, and save it. The
+saved record contains version-2 studio state (colors, door/roof/floor choices,
+wall graphics with exact positions/sizes, and all add-ons), contact/delivery
+fields, the quoted item breakdown, and two JPEG previews generated from the
+actual model. Review shows **Back and left** and **Front and right** at 640×480.
+The capture uses fixed camera angles and an opaque roof, and preserves the live
+camera, selection, and see-through setting. Previews are stored privately in the
+existing JSON record, not in a public image bucket. Save can still succeed without
+previews if WebGL is unavailable; that limitation is stated in the result.
+
+**My designs** lists private saved copies with previews, total, and date. **Open in
+3D** restores the full studio state and contact details. Existing version-1 designs
+are supported; legacy combined neon/grass choices migrate to studio equivalents
+and use current studio pricing. Old graphic-request notes are retained in the review questions rather than
+inventing a new graphic. All new customization
+happens in the studio.
+
+Enable owner review:
+
+1. Create and confirm `salesandinfo@thedogehouse.com` on the site (configure SMTP if
+   delivery to this account is restricted by the default Supabase mail service).
+2. Run [`supabase/owner-access.sql`](supabase/owner-access.sql) in Supabase SQL Editor.
+   Its final query must return `salesandinfo@thedogehouse.com`. Zero rows means the
+   account does not exist or is not confirmed; confirm it and rerun the script.
+3. Sign out and back in with that account. Under **My builds**, open **Customer
+   designs** to see saved designs and verified customer account emails. Both
+   previews are shown; **Open in 3D** restores the design for inspection.
+
+The owner flag comes from a private database table and a protected RPC, never
+from browser config or editable user metadata. The owner can read customer
+designs but cannot modify or delete their records. Other customers cannot list
+one another's designs or grant themselves owner access. The UI tells customers
+that saving makes their design available to the DogeHouse team for review.
+Owner listing is paginated; it does not expose a public share link. Without the
+migration, private customer saving still works, but the owner tab remains hidden.
+
+Verification:
+
+```sh
+npm install --prefix /tmp/dogehouse-db-tests --cache /tmp/dogehouse-npm-cache --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.9
+NODE_PATH=/tmp/dogehouse-db-tests/node_modules node tests/owner-access.cjs
+```
+
+This executes the actual schema and migration in PostgreSQL (PGlite) with auth
+subject fixtures. It verifies confirmed-owner membership, repeatability, private
+customer reads/deletes, owner read-only access, anonymous denial, denied privilege
+escalation, and pagination. It does not replace real Supabase authentication or
+testing the deployed owner account. Browser tests exercise the real SDK with
+mocked service responses and verify thumbnail capture, saved previews, customer
+and owner library UI, opening saved 3D designs, and mobile review layout.
