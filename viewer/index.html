@@ -167,16 +167,23 @@ window.DogeHouseStudio={
  capture(){
   const width=960,height=720,target=new T.WebGLRenderTarget(width,height);
   const previousTarget=ren.getRenderTarget(),background=scene.background,xray=S.xray,selection=S.sel,gridVisible=gr.visible;
-  const camera=new T.PerspectiveCamera(38,width/height,.05,60),result={};
+  const camera=new T.PerspectiveCamera(34,width/height,.05,60),result={};
   try{
    S.xray=false;S.sel=-1;build();gr.visible=false;scene.background=env;ren.setRenderTarget(target);
    for(const [key,position] of [['backLeft',[-2.4,1.6,-2.8]],['frontRight',[2.4,1.6,2.8]]]){
-    camera.position.set(...position);camera.lookAt(0,.4,0);ren.render(scene,camera);
+    camera.position.set(...position);camera.lookAt(0,.46,0);ren.render(scene,camera);
     const pixels=new Uint8Array(width*height*4);ren.readRenderTargetPixels(target,0,0,width,height,pixels);
     const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
     const context=canvas.getContext('2d'),image=context.createImageData(width,height);
     for(let row=0;row<height;row++)image.data.set(pixels.subarray((height-row-1)*width*4,(height-row)*width*4),row*width*4);
-    context.putImageData(image,0,0);result[key]=canvas.toDataURL('image/jpeg',.88);
+    context.putImageData(image,0,0);let encoded=null;
+    for(const [outWidth,outHeight] of [[960,720],[816,612],[672,504]]){
+     const scaled=document.createElement('canvas');scaled.width=outWidth;scaled.height=outHeight;scaled.getContext('2d').drawImage(canvas,0,0,outWidth,outHeight);
+     for(const quality of [.9,.88,.84,.8,.76,.72]){const candidate=scaled.toDataURL('image/jpeg',quality);if(candidate.length<=580000){encoded=candidate;break;}}
+     if(encoded)break;
+    }
+    if(!encoded)throw new Error('Could not fit design preview within the order request size limit.');
+    result[key]=encoded;
    }
    return result;
   }finally{ren.setRenderTarget(previousTarget);scene.background=background;gr.visible=gridVisible;S.xray=xray;S.sel=selection;build();target.dispose();ren.render(scene,cam);}
