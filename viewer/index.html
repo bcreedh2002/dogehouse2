@@ -72,9 +72,8 @@ P.addEventListener('input',e=>{const el=e.target;if(el.id==='gs'&&S.sel>=0){cons
 P.addEventListener('change',e=>{const el=e.target;if(el.id==='gw'&&S.sel>=0){const g=S.gfx[S.sel];g.w=el.value;g.u=g.k==='e'&&g.w==='front'?.33:0;clampG(g);upd()}else if(el.dataset.k&&el.type==='checkbox')set(el.dataset.k,el.checked)});
 /* ---------- 3D setup ---------- */
 const V=$('v'),ren=new T.WebGLRenderer({antialias:true,alpha:true}),scene=new T.Scene(),cam=new T.PerspectiveCamera(38,1,.05,60);
-ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.outputEncoding=T.sRGBEncoding;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.05;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;V.appendChild(ren.domElement);const dom=ren.domElement;
+ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.outputEncoding=T.sRGBEncoding;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=0.82;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;V.appendChild(ren.domElement);const dom=ren.domElement;
 const ctl=new T.OrbitControls(cam,dom);ctl.enableDamping=true;ctl.screenSpacePanning=true;ctl.minDistance=1;ctl.maxDistance=9;ctl.maxPolarAngle=Math.PI*.5;
-ren.toneMappingExposure=0.82;
 let needsRender=true;ctl.addEventListener('change',()=>{needsRender=true;});
 const VW=[[2.4,1.6,2.8],[0,.55,3.6],[3.6,.55,0],[0,.55,-3.6],[0,4.2,.01]];
 const view=i=>{cam.position.set(...VW[i]);ctl.target.set(0,.4,0);ctl.update()};view(0);
