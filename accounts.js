@@ -3,12 +3,15 @@
   const $ = id => document.getElementById(id);
   const dialog = $('accountDialog');
   const config = window.DOGEHOUSE_ACCOUNT_CONFIG || {};
-  let client, user = null, busy = false, revision = 0, recovering = false;
+  let client, user = null, busy = false, revision = 0, recovering = false, isOwner = false, libraryMode = "mine", libraryPage = 0;
+  const pageSize=25;
   const launchers = [];
   const status = message => { $('accountStatus').textContent = message; };
   const redirectUrl = () => location.origin + location.pathname;
   function showUser(nextUser) {
+    const changed=user?.id!==nextUser?.id;
     user = nextUser;
+    if(changed){isOwner=false;libraryMode='mine';libraryPage=0;$('accountCustomerDesigns').hidden=true;$('ownerSetupStatus').hidden=true;}
     revision++;
     $('accountAuthForm').hidden = !client || Boolean(user) || recovering;
     $('accountResetForm').hidden = !recovering;
@@ -16,6 +19,7 @@
     $('accountIdentity').textContent = user ? `Signed in as ${user.email}` : '';
     $('accountIntro').textContent = recovering ? 'Choose a new password for your account.' : user ? 'Save a new copy of your current design, or reopen a saved build.' : 'Sign in to save your builds and pick them up on any device.';
     $('savedBuildList').replaceChildren();
+    $('designPrevious').hidden=true;$('designNext').hidden=true;
     launchers.forEach(button => { button.textContent = user ? 'My builds' : 'Sign in / Save builds'; });
   }
   async function operation(work) {
@@ -30,50 +34,78 @@
       dialog.querySelectorAll('button').forEach(button => { button.disabled = false; });
     }
   }
+  async function checkOwner() {
+    if(!user)return;
+    const owner=user.id;
+    const {data,error}=await client.rpc('is_dogehouse_owner');
+    if(!user||user.id!==owner)return;
+    isOwner=!error&&data===true;
+    $('accountCustomerDesigns').hidden=!isOwner;
+    $('ownerSetupStatus').hidden=!error||user.email!=='salesandinfo@thedogehouse.com';
+    $('ownerSetupStatus').textContent=error?'Customer designs are unavailable right now. Your own saved designs still work.':'';
+    if(!isOwner&&libraryMode==='customers')libraryMode='mine';
+  }
+  function validPreview(value){return typeof value==='string'&&value.length<=600000&&/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(value);}
+  function previewElement(preview,name){
+    const strip=document.createElement('div');strip.className='design-previews';
+    for(const [key,label] of [['backLeft','Back and left'],['frontRight','Front and right']]){
+      if(!validPreview(preview?.[key]))continue;
+      const image=document.createElement('img');image.src=preview[key];image.alt=label+' of '+name;image.loading='lazy';strip.append(image);
+    }
+    return strip;
+  }
   async function refreshBuilds() {
     if (!user || recovering) return;
-    const owner = user.id, currentRevision = revision;
-    const { data, error } = await client.from('dogehouse_builds').select('id,name,build,created_at').eq('user_id', owner).order('created_at', { ascending: false });
-    if (error) throw error;
-    if (!user || user.id !== owner || revision !== currentRevision || recovering) return;
-    const list = $('savedBuildList'); list.replaceChildren();
-    if (!data.length) { const item = document.createElement('li'); item.textContent = 'No saved builds yet. Your current design is ready to save.'; list.append(item); }
-    data.forEach(row => {
-      const item = document.createElement('li');
-      const title = document.createElement('strong'); title.textContent = row.name;
-      const date = document.createElement('small'); date.textContent = new Date(row.created_at).toLocaleDateString();
-      const load = document.createElement('button'); load.type = 'button'; load.textContent = 'Open build'; load.setAttribute('aria-label', `Open ${row.name}`);
-      load.addEventListener('click', () => {
-        if (!window.confirm('Replace your current design with this saved build? Save your current design first if you want to keep it.')) return;
-        try { window.DogeHouseBuild.load(row.build); $('savedBuildName').value = row.name; dialog.close(); } catch (error) { status(error.message); }
+    const owner=user.id,currentRevision=revision,mode=libraryMode,page=libraryPage;
+    let result;
+    if(mode==='customers'){
+      if(!isOwner)throw Error('Owner access required.');
+      result=await client.rpc('dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize});
+    }else result=await client.from('dogehouse_builds').select('id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
+    const {data,error}=result;if(error)throw error;
+    if(!user||user.id!==owner||revision!==currentRevision||mode!==libraryMode||page!==libraryPage||recovering)return;
+    $('designLibraryHeading').textContent=mode==='customers'?'Customer designs':'My designs';
+    $('accountOwnDesigns').setAttribute('aria-pressed',String(mode==='mine'));
+    $('accountCustomerDesigns').setAttribute('aria-pressed',String(mode==='customers'));
+    $('designPrevious').hidden=page===0;$('designNext').hidden=data.length<pageSize;
+    const list=$('savedBuildList');list.replaceChildren();
+    if(!data.length){const item=document.createElement('li');item.textContent=mode==='customers'?'No customer designs on this page yet.':'No saved designs yet. Name and save your current design above.';list.append(item);}
+    data.forEach(row=>{
+      const item=document.createElement('li');
+      const title=document.createElement('strong');title.textContent=row.name;
+      const details=document.createElement('small');
+      let estimate='';try{estimate=' · $'+window.DogeHouseStudioPricing(window.DogeHouseBuild.decode(row.build).studio).total;}catch{}
+      details.textContent=new Date(row.created_at).toLocaleDateString()+estimate+(mode==='customers'?' · '+row.customer_email:'');
+      const load=document.createElement('button');load.type='button';load.textContent='Open in 3D';load.setAttribute('aria-label','Open '+row.name);
+      load.addEventListener('click',()=>{
+        if(!window.confirm('Replace your current design with this saved design? Save your current design first if you want to keep it.'))return;
+        try{window.DogeHouseBuild.load(row.build);$('savedBuildName').value=row.name;dialog.close();}catch(error){status(error.message);}
       });
-      const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Delete'; remove.setAttribute('aria-label', `Delete ${row.name}`);
-      remove.addEventListener('click', () => {
-        if (!window.confirm(`Delete “${row.name}” from your saved builds?`)) return;
-        operation(async () => {
-          if (!user) throw Error('Please sign in again.');
-          const { error } = await client.from('dogehouse_builds').delete().eq('id', row.id).eq('user_id', user.id);
-          if (error) throw error;
-          await refreshBuilds(); status('Build deleted.');
+      item.append(title,details,previewElement(row.build.preview,row.name),load);
+      if(mode==='mine'){
+        const remove=document.createElement('button');remove.type='button';remove.textContent='Delete';remove.setAttribute('aria-label','Delete '+row.name);
+        remove.addEventListener('click',()=>{
+          if(!window.confirm('Delete “'+row.name+'” from your saved designs?'))return;
+          operation(async()=>{if(!user)throw Error('Please sign in again.');const {error}=await client.from('dogehouse_builds').delete().eq('id',row.id).eq('user_id',user.id);if(error)throw error;await refreshBuilds();status('Design deleted.');});
         });
-      });
-      item.append(title, date, document.createElement('br'), load, remove); list.append(item);
+        item.append(remove);
+      }
+      list.append(item);
     });
+  }
+  function openAccount(){
+    if(!dialog.open)dialog.showModal();
+    if(!client){showUser(null);status('Account saving is coming soon. You can still customize your house and download your build details.');return;}
+    if(recovering){showUser(user);return;}
+    status('Loading your account…');
+    operation(async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;showUser(data.session?.user||null);if(user){await checkOwner();await refreshBuilds();}status('');});
   }
   document.querySelectorAll('.site-header').forEach(header => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'account-launch'; button.textContent = 'Sign in / Save builds'; button.setAttribute('aria-haspopup', 'dialog');
-    button.addEventListener('click', () => {
-      dialog.showModal();
-      if (!client) { showUser(null); status('Account saving is coming soon. You can still customize your house and download your build details.'); return; }
-      if (recovering) { showUser(user); return; }
-      status('Loading your account…');
-      operation(async () => {
-        const {data,error}=await client.auth.getSession(); if(error)throw error;
-        showUser(data.session?.user || null); if(user)await refreshBuilds(); status('');
-      });
-    });
+    button.addEventListener('click', openAccount);
     header.append(button); launchers.push(button);
   });
+  document.querySelectorAll('[data-account-open]').forEach(button=>button.addEventListener('click',openAccount));
   dialog.querySelector('.account-close').addEventListener('click', () => dialog.close());
   $('accountAuthForm').addEventListener('submit', event => {
     event.preventDefault();
@@ -86,7 +118,7 @@
       finally { $('accountPassword').value = ''; }
       const {data,error}=result; if(error)throw error;
       showUser(data.session?.user || null);
-      if(user){await refreshBuilds();status('You’re signed in. Save your current design below.');}
+      if(user){await checkOwner();await refreshBuilds();status('You’re signed in. Save your current design below.');}
       else status('Check your email to confirm your account, then return here to sign in.');
     });
   });
@@ -113,11 +145,18 @@
     operation(async () => {
       if (!user) throw Error('Please sign in again to save your build.');
       const name = $('savedBuildName').value.trim(); if (!name) throw Error('Enter a name for your build.');
-      const { error } = await client.from('dogehouse_builds').insert({user_id:user.id,name,build:window.DogeHouseBuild.read()});
+      const savingUser=user.id,build=window.DogeHouseBuild.read();let previews=true;
+      try{build.preview=await window.DogeHouseStudioBridge.capture();}catch{previews=false;}
+      if(!user||user.id!==savingUser)throw Error('Please sign in again to save your design.');
+      const { error } = await client.from('dogehouse_builds').insert({user_id:user.id,name,build});
       if(error)throw error;
-      await refreshBuilds(); status('Build saved to your account.');
+      libraryMode='mine';libraryPage=0;await refreshBuilds(); status(previews?'Design saved. You can reopen it later, and the DogeHouse team can review it.':'Design saved without previews. Reopen it later to view it in 3D.');
     });
   });
+  $('accountOwnDesigns').addEventListener('click',()=>operation(async()=>{libraryMode='mine';libraryPage=0;await refreshBuilds();status('');}));
+  $('accountCustomerDesigns').addEventListener('click',()=>operation(async()=>{if(!isOwner)throw Error('Owner access required.');libraryMode='customers';libraryPage=0;await refreshBuilds();status('');}));
+  $('designPrevious').addEventListener('click',()=>operation(async()=>{libraryPage=Math.max(0,libraryPage-1);await refreshBuilds();}));
+  $('designNext').addEventListener('click',()=>operation(async()=>{libraryPage++;await refreshBuilds();}));
   $('accountRefresh').addEventListener('click', () => operation(async () => { await refreshBuilds(); status('Saved builds refreshed.'); }));
   $('accountSignout').addEventListener('click', () => operation(async () => {
     const {error}=await client.auth.signOut({scope:'local'});if(error)throw error;

@@ -5,3 +5,10 @@
 
 #page-addons .addons-list,#page-addons .addons-validation,.review-addons{display:none!important}
 .review-row:has(.review-addons){display:none!important}
+#route-builder:checked ~ #page-builder .builder-layout{display:block}
+#route-review:checked ~ #page-builder .studio-embed,#route-review:checked ~ #page-builder .studio-save-actions{display:none!important}
+.studio-save-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:24px 0}.studio-save-actions p{font-size:13px;color:var(--muted);flex-basis:100%;margin:0}
+.review-thumbnails{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 18px}.review-thumbnails figure{margin:0;background:#e9ecf1;border:1px solid var(--line);border-radius:12px;overflow:hidden}.review-thumbnails img{display:block;width:100%;aspect-ratio:4/3;object-fit:contain}.review-thumbnails img[hidden]{display:none}.review-thumbnails figcaption{padding:10px 14px;font-size:13px;font-weight:700;background:var(--white)}#reviewPreviewStatus{font-size:13px;color:var(--muted)}
+@media(max-width:600px){.review-thumbnails{grid-template-columns:1fr}}
+
+#route-review:checked ~ #page-builder #page-review>.site-header{width:100%;box-sizing:border-box;align-self:stretch;gap:20px}

@@ -1,26 +1,21 @@
 (() => {
- const frame=document.getElementById('studioFrame');let state=null,api=null,applying=false;
- try{state=JSON.parse(sessionStorage.getItem('dogehouse-studio')||'null');}catch{}
- const field=id=>document.getElementById(id);
- function pricing(){return window.DogeHouseStudioPricing(api?api.get():state);}
- function showPrices(){const quote=pricing();document.querySelectorAll('.build-total').forEach(el=>el.textContent='$'+quote.total);const summary=document.getElementById('studioPriceSummary');if(summary)summary.textContent=quote.items.slice(1).map(([name,amount])=>name+' — $'+amount).join('; ')||'Stock build — no extras';}
- function remember(){showPrices();try{sessionStorage.setItem('dogehouse-studio',JSON.stringify(state));}catch{}}
- function fromParent(){
-  if(!api||applying)return;
-  applying=true;try{const next=api.get();next.nameplate=field('dogName').value||'DOGEHOUSE';next.body=field('bodyColor').value;next.trim=field('trimColor').value;next.win=field('addonWindow').checked;api.set(next);state=api.get();remember();}finally{applying=false;}
+ const frame=document.getElementById('studioFrame');let api=null,applying=false;
+ let cached=null,cachedKey=null;
+ let state=window.DogeHouseStudioState();
+ try{const stored=JSON.parse(sessionStorage.getItem('dogehouse-studio')||'null');if(stored)state=window.DogeHouseStudioState(stored);}catch{}
+ const read=()=>window.DogeHouseStudioState(api?api.get():state);
+ const pricing=()=>window.DogeHouseStudioPricing(read());
+ function remember(){cached=null;cachedKey=null;try{sessionStorage.setItem('dogehouse-studio',JSON.stringify(state));}catch{}window.dispatchEvent(new Event('dogehouse:design-change'));}
+ function restore(input){state=window.DogeHouseStudioState(input);if(api){applying=true;try{api.set(state);state=read();}finally{applying=false;}}remember();}
+ async function capture(){
+  if(!api){frame.loading='eager';await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{frame.removeEventListener('load',loaded);reject(Error('3D previews are unavailable.'));},15000);function loaded(){clearTimeout(timer);api?resolve():reject(Error('3D previews are unavailable.'));}frame.addEventListener('load',loaded,{once:true});if(frame.contentWindow?.DogeHouseStudio){api=frame.contentWindow.DogeHouseStudio;clearTimeout(timer);frame.removeEventListener('load',loaded);resolve();}});}
+  const key=JSON.stringify(read());if(!cached||cachedKey!==key){cached=api.capture();cachedKey=key;}return {...cached};
  }
- function restore(value){state=value;remember();if(api){applying=true;try{api.set(value||{});}finally{applying=false;}fromParent();}}
- window.DogeHouseStudioBridge={read:()=>state,restore,pricing};showPrices();
+ window.DogeHouseStudioBridge={read,restore,pricing,capture};
  frame.addEventListener('load',()=>{
   api=frame.contentWindow.DogeHouseStudio;
-  if(!api){field('studioStatus').textContent='3D is unavailable in this browser. You can still customize and save your build below.';return;}
+  if(!api){document.getElementById('studioStatus').textContent='3D is unavailable in this browser. Your saved design is still available in My builds.';return;}
   restore(state);
-  frame.contentWindow.addEventListener('studio-change',()=>{
-   if(applying)return;state=api.get();remember();applying=true;
-   try{field('dogName').value=state.nameplate==='DOGEHOUSE'?'':state.nameplate;field('dogName').dispatchEvent(new Event('input',{bubbles:true}));for(const [id,key] of [['bodyColor','body'],['trimColor','trim']]){field(id).value=state[key];field(id).dispatchEvent(new Event('input',{bubbles:true}));}field('addonWindow').checked=state.win;field('addonWindow').dispatchEvent(new Event('change',{bubbles:true}));}finally{applying=false;}
-  });
+  frame.contentWindow.addEventListener('studio-change',()=>{if(applying)return;state=read();remember();});
  });
- for(const id of ['bodyColor','trimColor','bodyColorHex','trimColorHex','addonWindow','dogName','previewNameInput'])field(id).addEventListener('input',fromParent);
- field('addonWindow').addEventListener('change',fromParent);
- document.querySelectorAll('[name="palette-state"]').forEach(el=>el.addEventListener('change',fromParent));
 })();

@@ -889,7 +889,7 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 <input class="page-route" type="radio" name="page-route" id="route-builder">
 <input class="page-route" type="radio" name="page-route" id="route-modules">
 <input class="page-route" type="radio" name="page-route" id="route-review">
-<input class="page-route" type="radio" name="page-route" id="route-addons">
+
 
 <!-- Native configurator state: these controls work even when preview JavaScript is blocked -->
 
@@ -940,52 +940,23 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 
   <main class="builder-shell">
     <section class="builder-intro">
-      <h1>Customize your base model</h1>
+      <h1>Design your DogeHouse</h1>
       <p class="section-copy">$349 stock doghouse. Choose materials and add-ons in the 3D studio.</p>
-      
+
     </section>
 
-<section class="studio-embed" aria-labelledby="studioHeading"><h2 id="studioHeading">Explore your house in 3D</h2><p>Rotate and zoom, then explore materials and graphics. Choose features in the studio. Its price breakdown sets your build total.</p><iframe id="studioFrame" src="viewer/index.html" title="Interactive DogeHouse 3D configurator" loading="lazy"></iframe><p id="studioStatus" role="status">Colors and window choices sync with the build below. The studio total carries through to your review and saved build.</p></section>
+<section class="studio-embed" aria-labelledby="studioHeading"><h2 id="studioHeading">Explore your house in 3D</h2><p>Rotate and zoom, then explore materials and graphics. Choose features in the studio. Its price breakdown sets your build total.</p><iframe id="studioFrame" src="viewer/index.html" title="Interactive DogeHouse 3D configurator" loading="lazy"></iframe><p id="studioStatus" role="status">Your entire 3D design and studio total are saved together. Reopen it anytime from My builds.</p></section>
     <div class="builder-layout">
-      <aside class="builder-nav" aria-label="Configurator sections">
-        <button type="button" class="builder-nav-item" data-scroll-target="palette">Colors</button>
-        <button type="button" class="builder-nav-item" data-scroll-target="identity">Nameplate</button>
-        <label class="builder-nav-item" for="route-addons" data-page="addons" role="button" tabindex="0">Add-ons</label>
-      </aside>
+
 
       <div class="builder-content">
-        <section class="config-section" id="palette">
-          <div class="config-heading"><div><h2>Colors</h2></div></div>
-          <p class="section-copy">Choose a preset or enter custom colors.</p>
-          <div class="option-grid palette-grid" role="group" aria-label="Exterior palette">
-            <label class="option-card" for="palette-navy" data-palette="palette-navy"><input class="preset-radio" type="radio" name="palette-state" id="palette-navy" checked>
-              <span class="swatches"><i style="background:#9d2235"></i><i style="background:#ffffff"></i></span>
-              <strong>Arkansas</strong>
-            </label>
-            <label class="option-card" for="palette-red" data-palette="palette-red"><input class="preset-radio" type="radio" name="palette-state" id="palette-red">
-              <span class="swatches"><i style="background:#14213d"></i><i style="background:#ce1126"></i></span>
-              <strong>Ole Miss</strong>
-            </label>
-            <label class="option-card" for="palette-split" data-palette="palette-split"><input class="preset-radio" type="radio" name="palette-state" id="palette-split">
-              <span class="swatches"><i style="background:#34383b"></i><i style="background:#e8e2d6"></i></span>
-              <strong>Modern Neutral</strong>
-            </label>
-            <label class="option-card" for="palette-custom" data-palette="palette-custom"><input class="preset-radio" type="radio" name="palette-state" id="palette-custom"><span class="swatches"><i style="background:linear-gradient(135deg,#e16965,#eec658,#5d92b0)"></i></span><strong>Custom</strong></label>
-          </div>
-          <div class="custom-colors"><h3>Custom colors</h3><p class="native-color-instruction">Tap a color swatch or enter a hex code. Your preview updates as you choose.</p><div class="color-picker-grid"><div><label class="field-label" for="bodyColor">House color</label><div class="direct-color-control"><input class="direct-color-input" id="bodyColor" type="color" value="#9d2235" aria-label="Pick house color"><label class="hex-field"><span class="sr-only">House color hex code</span><input id="bodyColorHex" type="text" value="#9D2235" maxlength="7" pattern="#[0-9a-fA-F]{6}" spellcheck="false" autocapitalize="characters" autocomplete="off" aria-label="House color hex code" aria-describedby="hexColorHint"></label></div></div><div><label class="field-label" for="trimColor">Trim color</label><div class="direct-color-control"><input class="direct-color-input" id="trimColor" type="color" value="#ffffff" aria-label="Pick trim color"><label class="hex-field"><span class="sr-only">Trim color hex code</span><input id="trimColorHex" type="text" value="#FFFFFF" maxlength="7" pattern="#[0-9a-fA-F]{6}" spellcheck="false" autocapitalize="characters" autocomplete="off" aria-label="Trim color hex code" aria-describedby="hexColorHint"></label></div></div></div><p id="hexColorHint" class="hex-hint">Hex codes use # followed by six letters or numbers.</p><label class="field-label" for="colorRequest">Color names or paint codes</label><div class="input-wrap"><input id="colorRequest" placeholder="Describe your preferred colors"></div><p>Final shades are confirmed before building.</p></div>
-        </section>
 
-        <section class="config-section" id="identity">
-          <div class="config-heading"><div><h2>Nameplate</h2></div></div>
-          
-          <label class="field-label" for="dogName">Dog’s name</label>
-          <div class="input-wrap"><input id="dogName" maxlength="14" placeholder="WALTER" autocomplete="off" aria-describedby="nameLiveNote"><span id="charCount">0/14</span></div><p class="live-note" id="nameLiveNote">Maximum 14 characters. Leave blank for a DOGEHOUSE nameplate.</p>
-          
-        </section>
 
-        
 
-        <div class="customizer-next"><label class="button button-primary button-large" for="route-review" data-page="review" role="button" tabindex="0">Review my build <span aria-hidden="true">→</span></label></div>
+
+
+
+        <div class="studio-save-actions"><button type="button" class="button button-primary" data-account-open>Save design</button><button type="button" class="button account-secondary" data-account-open>My builds</button><p>Saved designs are private to your account and available to the DogeHouse team for review.</p></div><div class="customizer-next"><label class="button button-primary button-large" for="route-review" data-page="review" role="button" tabindex="0">Review my build <span aria-hidden="true">→</span></label></div>
       </div>
 
 <div id="page-review" class="preview-page">
@@ -998,30 +969,23 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 
         <section class="config-section review-section" id="review">
           <p class="section-copy">Review your studio options and total below. Delivery costs extra if selected.</p>
+          <section class="review-preview-section" aria-label="Your customized doghouse previews"><div class="review-thumbnails"><figure><img id="reviewBackLeft" alt="Your doghouse viewed from the back and left" hidden><figcaption>Back and left</figcaption></figure><figure><img id="reviewFrontRight" alt="Your doghouse viewed from the front and right" hidden><figcaption>Front and right</figcaption></figure></div><p id="reviewPreviewStatus" role="status">Generating your design previews…</p></section>
           <div class="review-card">
             <div class="review-row"><span>Base model</span><strong>Stock single-slope doghouse · $349</strong></div>
-            <div class="review-row"><span>Palette</span><strong><span class="color-summary"><span class="preset-ark">Arkansas</span><span class="preset-ole">Ole Miss</span><span class="preset-neutral">Modern Neutral</span><span class="preset-custom">Custom</span><span class="custom-color-value"></span></span></strong></div>
+
             <div class="review-row"><span>House color</span><strong class="review-color"><span id="reviewHouseSwatch" class="review-swatch" aria-hidden="true"></span><span id="reviewHouseColor"></span></strong></div>
             <div class="review-row"><span>Trim color</span><strong class="review-color"><span id="reviewTrimSwatch" class="review-swatch" aria-hidden="true"></span><span id="reviewTrimColor"></span></strong></div>
-            <div class="review-row review-paint-notes" id="reviewPaintNotesRow" hidden><span>Paint notes</span><strong id="reviewPaintNotes"></strong></div>
-            <div class="review-row"><span>Name</span><strong id="reviewName">DOGEHOUSE</strong></div>
-            <div class="review-row"><span>Add-ons</span><strong class="review-addons"><span class="no-addons">None</span><span class="selected-neon">Faux grass + neon · $50<span id="reviewNeonText" class="addon-note"></span></span><span class="selected-window">Window · $30</span><span class="selected-graphic">Custom graphic · $20<span id="reviewGraphicNotes" class="addon-note"></span></span></strong></div>
-            <div class="review-row"><span>3D options</span><strong id="studioPriceSummary">Stock build — no extras</strong></div><div class="review-row review-total"><span>Build total</span><strong><span class="build-total total-000">$349</span><span class="build-total total-001">$320</span><span class="build-total total-010">$330</span><span class="build-total total-011">$350</span><span class="build-total total-100">$350</span><span class="build-total total-101">$370</span><span class="build-total total-110">$380</span><span class="build-total total-111">$400</span></strong></div>
-            <div class="review-row"><label class="text-link" for="route-addons" data-page="addons" role="button" tabindex="0">Edit add-ons</label></div>
 
-            
-            
-            
+            <div class="review-row"><span>Name</span><strong id="reviewName">DOGEHOUSE</strong></div>
+
+            <div class="review-row"><span>3D options</span><strong id="studioPriceSummary">Stock build — no extras</strong></div><div class="review-row review-total"><span>Build total</span><strong id="reviewTotal">$349</strong></div>
+
+
+
+
+
           </div>
-          <div class="dimensions-summary" aria-label="DogeHouse dimensions">
-            <h3>Dimensions</h3>
-            <div class="dimension-grid">
-              <div><span>Exterior wall footprint</span><strong>33″ × 34″</strong></div>
-              <div><span>Interior footprint</span><strong>32″ × 33″</strong></div>
-              <div><span>Walls</span><strong>24″ high · ½″ thick</strong></div>
-              <div><span>Doorway</span><strong>13.75″ wide · 20.75″ max height</strong></div>
-            </div>
-          </div>
+
           <form id="requestForm" class="build-request-form">
             <div class="request-fields">
               <div class="request-field"><label class="field-label" for="customerName">Your name</label><div class="input-wrap"><input id="customerName" autocomplete="name" required></div></div>
@@ -1035,56 +999,12 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
         </section>
   </div>
 </div>
-      <aside class="preview-column">
-        <div class="preview-card">
-          <div class="preview-topline"><strong>Your DogeHouse</strong></div>
-          <div class="preview-stage">
-            <div class="house-scene builder-house-scene">
-              <div class="house-shadow"></div>
-              <div class="house-body" id="previewHouse">
-                
-                
-                <div class="house-roof"></div>
-                <div class="house-siding" aria-hidden="true"></div>
-                <div class="house-trim"></div>
-                <div class="house-door"></div>
-                <div class="house-plaque" id="previewName"><input class="house-plaque-input" id="previewNameInput" maxlength="14" value="DOGEHOUSE" aria-label="Dog name shown on house preview"></div>
-                <div class="house-vent" aria-label="Passive ventilation shown on preview"><i></i><i></i><i></i></div>
-                <div class="house-panel" id="previewPanel"><span class="panel-mark show-panel-clean">01</span><span class="panel-mark show-panel-gameday" aria-hidden="true"></span></div>
-                
-                <div class="drawer" id="previewDrawer" aria-label="Storage drawer shown on preview"></div>
-                <div class="house-feet" aria-hidden="true"></div>
-              </div>
-            </div>
-          </div>
-          <div class="preview-summary">
-            <div><span>Base model</span><strong>Medium</strong></div>
-            <div><span>Palette</span><strong><span class="color-summary"><span class="preset-ark">Arkansas</span><span class="preset-ole">Ole Miss</span><span class="preset-neutral">Modern Neutral</span><span class="preset-custom">Custom</span><span class="custom-color-value"></span></span></strong></div>
-            
-            <div><span>Name</span><strong id="previewSummaryName">DOGEHOUSE</strong></div>
-            
-          </div>
-        </div>
-      </aside>
+
     </div>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite">Build spec copied.</div>
-  
-</div>
 
-<div id="page-addons" class="preview-page">
-  <header class="site-header"><label class="brand" aria-label="DogeHouse home" for="route-home" data-page="home" role="button" tabindex="0"><span class="brand-mark" aria-hidden="true">DH</span><span class="brand-name">DOGEHOUSE</span></label><label class="text-link" for="route-builder" data-page="customize" role="button" tabindex="0">Edit base model</label></header>
-  <main class="addons-shell"><h1>Add-ons</h1><p class="section-copy">Your 3D studio selections determine the options and prices for your build.</p>
-    <p class="studio-addon-guidance">Choose add-ons in the 3D studio. Its price breakdown is included in your review.</p><div class="addons-list">
-      <div class="addon-card"><label class="addon-option" for="addonNeon"><input type="checkbox" id="addonNeon" form="requestForm"><span class="addon-icon" aria-hidden="true">✦</span><strong>Faux grass wall + neon sign</strong><span class="addon-price">+$50</span></label><div class="neon-details"><label class="field-label" for="neonText">Neon sign text</label><input id="neonText" form="requestForm" required placeholder="e.g. Woo Pig!" pattern=".*\S.*" aria-describedby="neonHint"><p id="neonHint">Enter the wording for your sign.</p></div></div>
-      <div class="addon-card"><label class="addon-option" for="addonWindow"><input type="checkbox" id="addonWindow" form="requestForm"><svg class="addon-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 4v16M4 12h16"/></svg><strong>Window</strong><span class="addon-price">+$30</span></label></div>
-      <div class="addon-card"><label class="addon-option" for="addonGraphic"><input type="checkbox" id="addonGraphic" form="requestForm"><svg class="addon-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m4 17 5-5 4 4 3-3 5 5"/><circle cx="15" cy="8" r="2"/></svg><strong>Custom graphic</strong><span class="addon-price">+$20</span></label><div class="graphic-details"><label class="field-label" for="graphicNotes">Graphic idea (optional)</label><textarea id="graphicNotes" form="requestForm" rows="2" placeholder="Describe the graphic you have in mind."></textarea></div></div>
-    </div>
-    <div class="addons-total"><span>Build total</span><strong><span class="build-total total-000">$349</span><span class="build-total total-001">$320</span><span class="build-total total-010">$330</span><span class="build-total total-011">$350</span><span class="build-total total-100">$350</span><span class="build-total total-101">$370</span><span class="build-total total-110">$380</span><span class="build-total total-111">$400</span></strong></div>
-    <p class="addons-validation" role="status">Enter your neon sign text to continue.</p>
-    <label class="button button-primary addons-next" for="route-review" data-page="review" role="button" tabindex="0"><span class="with-addons">Review my build</span><span class="without-addons">Continue without add-ons</span><span aria-hidden="true"> →</span></label>
-  </main>
 </div>
 
 <div id="page-modules" class="preview-page modules-page">
@@ -1130,52 +1050,7 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 
 
 
-<script>
-(()=>{const $=id=>document.getElementById(id);const house=$('previewHouse');const presets={'palette-navy':['#9d2235','#ffffff'],'palette-red':['#14213d','#ce1126'],'palette-split':['#34383b','#e8e2d6']};
 
-let restoringBuild=true;
-const buildFields=['bodyColor','trimColor','colorRequest','dogName','neonText','graphicNotes','customerName','customerEmail','fulfillment','notes'];
-const addonFields=['addonNeon','addonWindow','addonGraphic'];
-function saveBuild(){if(restoringBuild)return;try{const values={};buildFields.forEach(id=>values[id]=$(id).value);const addons={};addonFields.forEach(id=>addons[id]=$(id).checked);const palette=document.querySelector('[name="palette-state"]:checked');sessionStorage.setItem('dogehouse-build',JSON.stringify({values,addons,palette:palette.id}));}catch{}}
-function restoreBuild(){try{const saved=JSON.parse(sessionStorage.getItem('dogehouse-build')||'null');if(saved){const values=saved.values||{};buildFields.forEach(id=>{if(typeof values[id]!=='string')return;if(['bodyColor','trimColor'].includes(id)&&!/^#[0-9a-f]{6}$/i.test(values[id]))return;if(id==='fulfillment'&&!Array.from($(id).options).some(option=>option.value===values[id]))return;$(id).value=id==='dogName'?values[id].slice(0,14):values[id];});addonFields.forEach(id=>$(id).checked=saved.addons?.[id]===true);if(['palette-navy','palette-red','palette-split','palette-custom'].includes(saved.palette))$(saved.palette).checked=true;}else{const old=JSON.parse(sessionStorage.getItem('dogehouse-colors')||'null');if(old&&/^#[0-9a-f]{6}$/i.test(old.body)&&/^#[0-9a-f]{6}$/i.test(old.trim)&&['palette-navy','palette-red','palette-split','palette-custom'].includes(old.palette)){$('bodyColor').value=old.body;$('trimColor').value=old.trim;$(old.palette).checked=true;$('colorRequest').value=old.notes||'';}}}catch{}}
-function color(){saveBuild();house.style.setProperty('--custom-body',$('bodyColor').value);house.style.setProperty('--custom-trim',$('trimColor').value);const label=$('colorRequest').value.trim()||'House '+$('bodyColor').value+' / Trim '+$('trimColor').value;document.querySelectorAll('.custom-color-value').forEach(el=>el.textContent=label);const review=$('page-review');review.style.setProperty('--review-custom-house',$('bodyColor').value);review.style.setProperty('--review-custom-trim',$('trimColor').value);$('reviewHouseColor').textContent=$('bodyColor').value.toUpperCase();$('reviewTrimColor').textContent=$('trimColor').value.toUpperCase();['bodyColor','trimColor'].forEach(id=>{$(id+'Hex').value=$(id).value.toUpperCase();$(id+'Hex').setCustomValidity('');});$('reviewHouseSwatch').style.setProperty('--review-color',$('bodyColor').value);$('reviewTrimSwatch').style.setProperty('--review-color',$('trimColor').value);const notes=$('colorRequest').value.trim();$('reviewPaintNotes').textContent=notes;$('reviewPaintNotesRow').hidden=!notes;}
-
-function name(){saveBuild();const n=$('dogName').value.trim()||'DOGEHOUSE';$('previewNameInput').value=n.toUpperCase();$('reviewName').textContent=n;$('previewSummaryName').textContent=n;$('charCount').textContent=$('dogName').value.length+'/14';}
-$('dogName').addEventListener('input',name);$('previewNameInput').addEventListener('input',()=>{$('dogName').value=$('previewNameInput').value;name();});
-function customColorChanged(){$('palette-custom').checked=true;color();}
-['bodyColor','trimColor'].forEach(id=>{const input=$(id);input.addEventListener('input',customColorChanged);input.addEventListener('change',customColorChanged);});$('colorRequest').addEventListener('input',customColorChanged);$('colorRequest').addEventListener('change',customColorChanged);Object.keys(presets).forEach(id=>$(id).addEventListener('change',()=>{const c=presets[id];$('bodyColor').value=c[0];$('trimColor').value=c[1];$('colorRequest').value='';color();}));
-['bodyColor','trimColor'].forEach(id=>{const hex=$(id+'Hex');hex.addEventListener('input',()=>{const value=hex.value.trim();if(/^#[0-9a-f]{6}$/i.test(value)){$(id).value=value.toLowerCase();hex.setCustomValidity('');customColorChanged();}else hex.setCustomValidity('Use # followed by six hex digits, such as #14213D.');});hex.addEventListener('change',()=>{if(!hex.checkValidity())hex.reportValidity();});});
-
-function addonTotal(){return window.DogeHouseStudioBridge?.pricing().total||349;}
-function updateAddons(){saveBuild();const neon=$('addonNeon').checked;$('neonText').disabled=true;$('neonText').required=false;$('reviewNeonText').textContent=neon?$('neonText').value.trim():'';$('reviewGraphicNotes').textContent=$('addonGraphic').checked?$('graphicNotes').value.trim():'';}
-function addonsValid(){return true;}
-['addonNeon','addonWindow','addonGraphic','neonText','graphicNotes'].forEach(id=>{['input','change'].forEach(event=>$(id).addEventListener(event,updateAddons));});
-
-const routeIds={home:'route-home',customize:'route-builder',modules:'route-modules',review:'route-review',addons:'route-addons'};
-function renderRoute(key,focus=true){const section=['palette','identity'].includes(key)?$(key):null;const id=section?'route-builder':(routeIds[key]||'route-home');$(id).checked=true;document.querySelectorAll('.preview-page').forEach(page=>page.setAttribute('aria-hidden',String(page.id!=='page-'+id.replace('route-','')&&!(id==='route-review'&&page.id==='page-builder'))));['bodyColor','trimColor'].forEach(inputId=>{$(inputId).tabIndex=id==='route-review'?-1:0;});window.scrollTo(0,0);const target=section||document.querySelector('#page-'+id.replace('route-','')+' h1');if(target){if(focus){target.tabIndex=-1;target.focus({preventScroll:true});}if(section)target.scrollIntoView({block:'start'});}}
-function routeFromHash(focus=true){const key=location.hash.slice(1)||'home';if(key==='review'&&!addonsValid()){try{history.replaceState(null,'','#addons');}catch{}return;}if(key==='review'){color();name();updateAddons();}renderRoute(key,focus);}
-function navigate(key){if(key==='review'){if(!addonsValid())return;color();name();updateAddons();}if(location.protocol!=='file:'){try{const hash='#'+key;if(location.hash!==hash)history.pushState(null,'',hash);}catch{}}renderRoute(key);}
-document.querySelectorAll('[data-page]').forEach(control=>{control.addEventListener('click',e=>{e.preventDefault();navigate(control.dataset.page);});control.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();control.click();}});});
-document.querySelectorAll('[data-scroll-target]').forEach(control=>control.addEventListener('click',()=>navigate(control.dataset.scrollTarget)));
-window.addEventListener('hashchange',()=>routeFromHash());window.addEventListener('popstate',()=>routeFromHash());
-async function copyText(text,status){try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);}else{const field=document.createElement('textarea');field.value=text;field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();const copied=document.execCommand('copy');field.remove();if(!copied)throw Error('Copy unavailable');}status.textContent='Copied. Paste the details into an email to salesandinfo@thedogehouse.com.';}catch{status.textContent='Copy is unavailable here. Download your build details, or email salesandinfo@thedogehouse.com directly.';}}
-$('copyBuild').addEventListener('click',()=>copyText(spec(),$('requestStatus')));
-$('downloadBuild').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([spec()],{type:'text/plain;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='dogehouse-build-request.txt';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$('requestStatus').textContent='Build details downloaded. Attach the file to an email to salesandinfo@thedogehouse.com.';});
-
-function updateFulfillment(){saveBuild();const delivery=$('fulfillment').value.startsWith('Delivery');$('notes').required=delivery;$('notesOptional').textContent=delivery?'(required for a delivery quote)':'(optional)';$('notes').placeholder=delivery?'City or ZIP for a delivery quote; any questions':'City or ZIP, and any questions';}
-$('fulfillment').addEventListener('change',updateFulfillment);
-function spec(){const quote=window.DogeHouseStudioBridge?.pricing()||{items:[['Stock single-slope doghouse',349]],total:349};return ['DogeHouse — 3D studio build',...quote.items.map(([label,price])=>label+' — $'+price),'Build total: $'+quote.total+' (delivery extra if selected)','Customer: '+$('customerName').value.trim(),'Email: '+$('customerEmail').value.trim(),'Dog name: '+($('dogName').value.trim()||'DOGEHOUSE'),'House color: '+$('bodyColor').value,'Trim color: '+$('trimColor').value,'Color notes: '+$('colorRequest').value,'Fulfillment: '+$('fulfillment').value,'Location / questions: '+$('notes').value].join('\n');}
-$('neonText').addEventListener('invalid',event=>{event.preventDefault();renderRoute('addons');$('neonText').focus();});
-$('requestForm').addEventListener('submit',e=>{e.preventDefault();if(!addonsValid())return;const href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('Medium DogeHouse build request')+'&body='+encodeURIComponent(spec());location.href=href;$('requestStatus').textContent='Your email app should open with your build details. Press Send there to submit. If it does not open, download the details and email salesandinfo@thedogehouse.com.';});
-$('moduleIdeaForm').addEventListener('submit',e=>{e.preventDefault();const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}location.href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('DogeHouse module idea')+'&body='+encodeURIComponent(idea);$('ideaStatus').textContent='Your email app should open. Press Send there to share your idea. If it does not open, use Copy idea and email us directly.';});$('copyIdea').addEventListener('click',async()=>{const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}await copyText(idea,$('ideaStatus'));if($('ideaStatus').textContent.startsWith('Copy is unavailable'))$('ideaStatus').textContent='Select and copy your idea from the field, then email salesandinfo@thedogehouse.com.';});buildFields.concat(addonFields).forEach(id=>{['input','change'].forEach(event=>$(id).addEventListener(event,saveBuild));});restoreBuild();restoringBuild=false;updateAddons();updateFulfillment();color();name();routeFromHash(false);
-window.DogeHouseBuild={
- read(){const values={},addons={};buildFields.forEach(id=>values[id]=$(id).value);addonFields.forEach(id=>addons[id]=$(id).checked);return {version:1,values,addons,studio:window.DogeHouseStudioBridge?.read()||null,palette:document.querySelector('[name="palette-state"]:checked').id};},
- load(build){
-  if(!build||build.version!==1||!build.values||!build.addons||!['palette-navy','palette-red','palette-split','palette-custom'].includes(build.palette)||buildFields.some(id=>typeof build.values[id]!=='string'||build.values[id].length>10000)||addonFields.some(id=>typeof build.addons[id]!=='boolean')||['bodyColor','trimColor'].some(id=>!/^#[0-9a-f]{6}$/i.test(build.values[id]))||!Array.from($('fulfillment').options).some(option=>option.value===build.values.fulfillment))throw Error('This saved build has an unsupported format.');
-  sessionStorage.setItem('dogehouse-build',JSON.stringify(build));restoringBuild=true;restoreBuild();restoringBuild=false;updateAddons();updateFulfillment();color();name();window.DogeHouseStudioBridge?.restore(build.studio||null);navigate('customize');
- }
-};})();
-</script>
 <dialog id="accountDialog" class="account-dialog" aria-labelledby="accountTitle">
   <div class="account-heading"><h2 id="accountTitle">Your DogeHouse builds</h2><button type="button" class="account-close" aria-label="Close account dialog">×</button></div>
   <p id="accountIntro">Sign in to save your builds and pick them up on any device.</p>
@@ -1191,15 +1066,22 @@ window.DogeHouseBuild={
   <section id="accountBuildPanel" hidden aria-label="Saved builds">
     <p id="accountIdentity"></p>
     <form id="accountSaveForm"><label for="savedBuildName">Name this build</label><input id="savedBuildName" maxlength="80" required placeholder="Buddy’s porch house"><div class="account-actions"><button class="button button-primary" type="submit">Save current build</button><button id="accountRefresh" class="button account-secondary" type="button">Refresh builds</button></div></form>
+    <p class="save-privacy">Your full 3D design is saved to your account and shared with the DogeHouse team for review.</p>
+    <div id="designLibraryTabs" class="account-actions"><button id="accountOwnDesigns" type="button" class="button account-secondary" aria-pressed="true">My designs</button><button id="accountCustomerDesigns" type="button" class="button account-secondary" aria-pressed="false" hidden>Customer designs</button></div>
+    <p id="ownerSetupStatus" hidden></p>
+    <h3 id="designLibraryHeading">My designs</h3>
     <ul id="savedBuildList" class="saved-builds"></ul>
+    <div class="account-actions"><button id="designPrevious" type="button" class="button account-secondary" hidden>Previous designs</button><button id="designNext" type="button" class="button account-secondary" hidden>More designs</button></div>
     <button id="accountSignout" class="button account-secondary" type="button">Sign out</button>
   </section>
   <p id="accountStatus" class="account-status" role="status" aria-live="polite"></p>
 </dialog>
 <script src="account-config.js"></script>
 <script src="vendor/supabase.js"></script>
-<script src="accounts.js"></script>
+<script src="viewer/state.js"></script>
 <script src="viewer/pricing.js"></script>
 <script src="viewer-embed.js"></script>
+<script src="app.js"></script>
+<script src="accounts.js"></script>
 </body>
 </html>
