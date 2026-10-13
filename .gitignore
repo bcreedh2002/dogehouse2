@@ -3,3 +3,6 @@
 node_modules/
 _site/
 __pycache__/
+
+# Local Supabase CLI metadata.
+supabase/.temp/

@@ -2,7 +2,7 @@
 
 The site remains static. Supabase provides email/password authentication,
 confirmation and password-reset emails, and private saved doghouse builds.
-There is no custom application server or SQLite dependency.
+Order requests use a small Supabase Edge Function; there is no self-hosted server or SQLite dependency.
 
 ## One-time launch setup
 
@@ -125,7 +125,7 @@ camera, selection, and see-through setting. Previews are stored privately in the
 existing JSON record, not in a public image bucket. Save can still succeed without
 previews if WebGL is unavailable; that limitation is stated in the result.
 
-**My designs** lists private saved copies with previews, total, and date. **Open in
+**Saved builds** lists private saved copies with previews, total, and date. **Open in
 3D** restores the full studio state and contact details. Existing version-1 designs
 are supported; legacy combined neon/grass choices migrate to studio equivalents
 and use current studio pricing. Old graphic-request notes are retained in the review questions rather than
@@ -139,8 +139,8 @@ Enable owner review:
 2. Run [`supabase/owner-access.sql`](supabase/owner-access.sql) in Supabase SQL Editor.
    Its final query must return `salesandinfo@thedogehouse.com`. Zero rows means the
    account does not exist or is not confirmed; confirm it and rerun the script.
-3. Sign out and back in with that account. Under **My builds**, open **Customer
-   designs** to see saved designs and verified customer account emails. Both
+3. Sign out and back in with that account. Under **My builds**, open **Customer saved
+   builds** to see saved designs and verified customer account emails. Both
    previews are shown; **Open in 3D** restores the design for inspection.
 
 The owner flag comes from a private database table and a protected RPC, never
@@ -165,3 +165,80 @@ escalation, and pagination. It does not replace real Supabase authentication or
 testing the deployed owner account. Browser tests exercise the real SDK with
 mocked service responses and verify thumbnail capture, saved previews, customer
 and owner library UI, opening saved 3D designs, and mobile review layout.
+
+## Ordered builds and order emails
+
+**Saved builds** remain editable design copies. Submitting from Review now creates
+an immutable **order request** with the studio settings, customer information,
+server-calculated price, and both JPEG previews. No payment is collected; the
+request awaits DogeHouse confirmation. Customers have separate **Saved builds**
+and **Ordered builds** tabs. The confirmed owner has separate **Customer saved
+builds** and **Customer ordered builds** tabs. Ordered designs can be reopened in
+3D; deleting a saved design does not delete its order.
+
+Enable ordering before publishing the updated site:
+
+1. Run [`supabase/orders.sql`](supabase/orders.sql) in Supabase SQL Editor, after
+   the existing schema and owner-access migrations. It can safely be rerun.
+2. Create a [Resend account](https://resend.com), add `thedogehouse.com` under
+   Domains, and add the DNS records Resend supplies at your domain's DNS provider.
+   Wait for verification. Create an API key with sending access to this domain.
+3. In Supabase **Edge Functions → Secrets**, enter these values securely:
+   - `RESEND_API_KEY`: the Resend sending key.
+   - `ORDER_EMAIL_FROM`: `DogeHouse <orders@thedogehouse.com>`.
+   - `SITE_URL`: `https://bcreedh2002.github.io/dogehouse2/` (or the actual custom-domain site).
+   Do not paste API keys in chat or add them to browser configuration. Supabase
+   automatically supplies the server-only database credentials to the function.
+4. Deploy `submit-order` from this checkout:
+   ```sh
+   supabase login
+   supabase functions deploy submit-order --project-ref lftpzfnzokjqgeteitul --no-verify-jwt --use-api
+   ```
+   Alternatively, after merging this change, create a Supabase personal access
+   token in your account settings, save it as the GitHub repository Actions secret
+   `SUPABASE_ACCESS_TOKEN`, and run **Deploy DogeHouse ordering** from Actions.
+   Resend credentials stay in Supabase, not in GitHub Pages. The deployment
+   workflow is manual; ordinary site pushes do not redeploy this backend.
+5. Publish the site and submit one test order yourself. Verify its two images in
+   the business inbox, the customer's Ordered builds tab, and the owner's
+   Customer ordered builds tab. Verify another customer cannot read it. Browser
+   and local database tests do not prove live delivery.
+
+Emails go to `salesandinfo@thedogehouse.com`, with both images as inline JPEG
+attachments and a link to the ordered-build view. Reply-To uses the authenticated,
+confirmed account email. The entered contact email is also included in the
+message. Some mail clients block inline images until the recipient allows them;
+the images remain attached. `sent` means Resend accepted the message, not proof
+that it reached the inbox. This order-email integration does not configure
+Supabase's separate authentication SMTP service.
+
+The handler verifies every bearer token through Supabase Auth even though gateway
+`verify_jwt` is disabled to support current signing keys. It recalculates pricing
+from the same studio price file used by the viewer and limits payload size.
+Customers and the owner have read-only order access; only the server can insert
+or update orders. The default allowed browser origin is the origin of `SITE_URL`;
+set `ALLOWED_ORIGINS` to a comma-separated list of exact origins if needed.
+
+An order is saved before sending email. Missing email settings leave it queued;
+provider failures leave it pending with **Retry email** available in the customer's
+Ordered builds. Retries reuse the original order and previews. Atomic claims,
+stable provider idempotency keys, five email attempts, and five new requests per
+account per hour limit duplicate submissions and abuse. There is no automatic
+background email queue or payment/confirmation UI in this change. Review pending
+email statuses in the owner view and contact customers directly as needed.
+Resend's idempotency window is finite; an ambiguous provider response followed by
+an unusually delayed retry can still result in a duplicate notification.
+
+Additional validation (Node 24 and Deno):
+
+```sh
+node tests/orders.cjs
+NODE_PATH=/tmp/dogehouse-db-tests/node_modules node tests/orders-access.cjs
+deno check supabase/functions/submit-order/index.ts
+```
+
+These exercise authenticated ordering, authoritative pricing, inline attachment
+contents, input limits, safe HTML, provider failure/retry, concurrent email claims,
+actual PostgreSQL policies, rate limiting and migration repeatability. Browser
+checks also exercise submission retries using the same request ID and the separate
+customer/owner views. No test sends a real email or places a live order.

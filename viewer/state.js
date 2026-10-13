@@ -1,5 +1,5 @@
 // Shared, versioned design normalization. Only studio controls define a design.
-window.DogeHouseStudioState = input => {
+globalThis.DogeHouseStudioState = input => {
  const clean={nameplate:'DOGEHOUSE',body:'#c9a27a',roof:'#3a3d44',trim:'#f2efe8',door:'M',doorTrim:false,cornerTrim:false,roofType:'plain',xray:false,win:false,awning:false,awningColor:'#b5392f',floor:'none',floorColor:'#b5392f',led:false,ledColor:'#4de3ff',grass:'none',mailbox:false,board:'none',gfx:[],sel:-1};
  if(!input||typeof input!=='object'||Array.isArray(input))return clean;
  if(typeof input.nameplate==='string')clean.nameplate=input.nameplate.slice(0,14);
