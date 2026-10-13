@@ -11,8 +11,8 @@
   function showUser(nextUser) {
     const changed=user?.id!==nextUser?.id;
     user = nextUser;
-    if(changed){isOwner=false;libraryMode='mine';libraryPage=0;$('accountCustomerDesigns').hidden=true;$('ownerSetupStatus').hidden=true;}
-    revision++;
+    if(changed){isOwner=false;libraryMode='mine';libraryPage=0;$('accountCustomerDesigns').hidden=true;$('accountCustomerOrders').hidden=true;$('ownerSetupStatus').hidden=true;}
+    revision++;window.dispatchEvent(new Event('dogehouse:account-change'));
     $('accountAuthForm').hidden = !client || Boolean(user) || recovering;
     $('accountResetForm').hidden = !recovering;
     $('accountBuildPanel').hidden = !user || recovering;
@@ -40,10 +40,10 @@
     const {data,error}=await client.rpc('is_dogehouse_owner');
     if(!user||user.id!==owner)return;
     isOwner=!error&&data===true;
-    $('accountCustomerDesigns').hidden=!isOwner;
+    $('accountCustomerDesigns').hidden=!isOwner;$('accountCustomerOrders').hidden=!isOwner;
     $('ownerSetupStatus').hidden=!error||user.email!=='salesandinfo@thedogehouse.com';
     $('ownerSetupStatus').textContent=error?'Customer designs are unavailable right now. Your own saved designs still work.':'';
-    if(!isOwner&&libraryMode==='customers')libraryMode='mine';
+    if(!isOwner&&libraryMode.startsWith('customer'))libraryMode='mine';
   }
   function validPreview(value){return typeof value==='string'&&value.length<=600000&&/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(value);}
   function previewElement(preview,name){
@@ -58,30 +58,35 @@
     if (!user || recovering) return;
     const owner=user.id,currentRevision=revision,mode=libraryMode,page=libraryPage;
     let result;
-    if(mode==='customers'){
+    const orders=mode.endsWith('orders'),team=mode.startsWith('customer');
+    if(team){
       if(!isOwner)throw Error('Owner access required.');
-      result=await client.rpc('dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize});
-    }else result=await client.from('dogehouse_builds').select('id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
+      result=await client.rpc(orders?'dogehouse_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize});
+    }else result=await client.from(orders?'dogehouse_orders':'dogehouse_builds').select(orders?'id,request_id,name,build,total_cents,status,email_status,email_attempts,created_at':'id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
     const {data,error}=result;if(error)throw error;
     if(!user||user.id!==owner||revision!==currentRevision||mode!==libraryMode||page!==libraryPage||recovering)return;
-    $('designLibraryHeading').textContent=mode==='customers'?'Customer designs':'My designs';
+    $('designLibraryHeading').textContent={mine:'Saved builds',mine_orders:'Ordered builds',customers:'Customer saved builds',customer_orders:'Customer ordered builds'}[mode];
     $('accountOwnDesigns').setAttribute('aria-pressed',String(mode==='mine'));
-    $('accountCustomerDesigns').setAttribute('aria-pressed',String(mode==='customers'));
+    $('accountCustomerDesigns').setAttribute('aria-pressed',String(mode==='customers'));$('accountOwnOrders').setAttribute('aria-pressed',String(mode==='mine_orders'));$('accountCustomerOrders').setAttribute('aria-pressed',String(mode==='customer_orders'));
     $('designPrevious').hidden=page===0;$('designNext').hidden=data.length<pageSize;
     const list=$('savedBuildList');list.replaceChildren();
-    if(!data.length){const item=document.createElement('li');item.textContent=mode==='customers'?'No customer designs on this page yet.':'No saved designs yet. Name and save your current design above.';list.append(item);}
+    if(!data.length){const item=document.createElement('li');item.textContent=orders?'No order requests on this page yet.':team?'No customer saved builds on this page yet.':'No saved builds yet. Name and save your current design above.';list.append(item);}
     data.forEach(row=>{
       const item=document.createElement('li');
       const title=document.createElement('strong');title.textContent=row.name;
       const details=document.createElement('small');
-      let estimate='';try{estimate=' · $'+window.DogeHouseStudioPricing(window.DogeHouseBuild.decode(row.build).studio).total;}catch{}
-      details.textContent=new Date(row.created_at).toLocaleDateString()+estimate+(mode==='customers'?' · '+row.customer_email:'');
+      let estimate='';try{estimate=' · $'+(orders?row.total_cents/100:window.DogeHouseStudioPricing(window.DogeHouseBuild.decode(row.build).studio).total);}catch{}
+      details.textContent=new Date(row.created_at).toLocaleDateString()+estimate+(team?' · '+row.customer_email:'')+(orders?' · '+(row.status==='requested'?'Awaiting confirmation':row.status)+(row.email_status==='sent'?' · Email sent':' · Email pending'):'');
       const load=document.createElement('button');load.type='button';load.textContent='Open in 3D';load.setAttribute('aria-label','Open '+row.name);
       load.addEventListener('click',()=>{
         if(!window.confirm('Replace your current design with this saved design? Save your current design first if you want to keep it.'))return;
         try{window.DogeHouseBuild.load(row.build);$('savedBuildName').value=row.name;dialog.close();}catch(error){status(error.message);}
       });
       item.append(title,details,previewElement(row.build.preview,row.name),load);
+      if(orders&&mode==='mine_orders'&&row.email_status!=='sent'&&row.email_attempts<5){
+        const retry=document.createElement('button');retry.type='button';retry.textContent='Retry email';
+        retry.addEventListener('click',()=>operation(async()=>{const receipt=await window.DogeHouseOrders.submit({requestId:row.request_id,build:row.build});await refreshBuilds();status(receipt.emailStatus==='sent'?'Both design images were emailed to DogeHouse.':'Your request is saved; email delivery is still pending.');}));item.append(retry);
+      }
       if(mode==='mine'){
         const remove=document.createElement('button');remove.type='button';remove.textContent='Delete';remove.setAttribute('aria-label','Delete '+row.name);
         remove.addEventListener('click',()=>{
@@ -98,7 +103,7 @@
     if(!client){showUser(null);status('Account saving is coming soon. You can still customize your house and download your build details.');return;}
     if(recovering){showUser(user);return;}
     status('Loading your account…');
-    operation(async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;showUser(data.session?.user||null);if(user){await checkOwner();await refreshBuilds();}status('');});
+    operation(async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;showUser(data.session?.user||null);if(user){await checkOwner();if(location.hash==='#orders')libraryMode=isOwner?'customer_orders':'mine_orders';await refreshBuilds();}status('');});
   }
   document.querySelectorAll('.site-header').forEach(header => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'account-launch'; button.textContent = 'Sign in / Save builds'; button.setAttribute('aria-haspopup', 'dialog');
@@ -118,7 +123,7 @@
       finally { $('accountPassword').value = ''; }
       const {data,error}=result; if(error)throw error;
       showUser(data.session?.user || null);
-      if(user){await checkOwner();await refreshBuilds();status('You’re signed in. Save your current design below.');}
+      if(user){await checkOwner();if(location.hash==='#orders')libraryMode=isOwner?'customer_orders':'mine_orders';await refreshBuilds();status('You’re signed in. Save your current design below.');}
       else status('Check your email to confirm your account, then return here to sign in.');
     });
   });
@@ -153,6 +158,8 @@
       libraryMode='mine';libraryPage=0;await refreshBuilds(); status(previews?'Design saved. You can reopen it later, and the DogeHouse team can review it.':'Design saved without previews. Reopen it later to view it in 3D.');
     });
   });
+  $('accountOwnOrders').addEventListener('click',()=>operation(async()=>{libraryMode='mine_orders';libraryPage=0;await refreshBuilds();status('');}));
+  $('accountCustomerOrders').addEventListener('click',()=>operation(async()=>{if(!isOwner)throw Error('Owner access required.');libraryMode='customer_orders';libraryPage=0;await refreshBuilds();status('');}));
   $('accountOwnDesigns').addEventListener('click',()=>operation(async()=>{libraryMode='mine';libraryPage=0;await refreshBuilds();status('');}));
   $('accountCustomerDesigns').addEventListener('click',()=>operation(async()=>{if(!isOwner)throw Error('Owner access required.');libraryMode='customers';libraryPage=0;await refreshBuilds();status('');}));
   $('designPrevious').addEventListener('click',()=>operation(async()=>{libraryPage=Math.max(0,libraryPage-1);await refreshBuilds();}));
@@ -190,6 +197,21 @@
       }).catch(()=>status('Could not restore your account session. Please try again.'));
     }
   }catch{client=null;}
+  window.DogeHouseOrders={
+    userId:()=>user?.id||null,
+    async requireUser(){
+      if(!client)throw Error('Ordering is unavailable right now.');
+      const {data,error}=await client.auth.getSession();if(error||!data.session?.user){openAccount();throw Error('Sign in, then submit your order request again.');}
+      if(user?.id!==data.session.user.id)showUser(data.session.user);return data.session.user.id;
+    },
+    async submit(payload){
+      await this.requireUser();const {data,error}=await client.functions.invoke('submit-order',{body:payload});
+      if(error){let message='Ordering is temporarily unavailable. Your saved builds are still available.';try{const response=await error.context.json();if(typeof response.error==='string')message=response.error;}catch{}throw Error(message);}
+      if(!data?.orderId)throw Error('The request could not be confirmed. Please retry the same request.');return data;
+    }
+  };
+  window.addEventListener('hashchange',()=>{if(location.hash==='#orders')openAccount();});
+  if(location.hash==='#orders')setTimeout(openAccount,0);
   // Email callbacks can arrive in an already open tab without a document load.
   // Restart SDK initialization only when a new callback fragment contains tokens.
   window.addEventListener('hashchange', () => {

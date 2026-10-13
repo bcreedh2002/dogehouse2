@@ -993,8 +993,8 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
               <div class="request-field request-field-wide"><label class="field-label" for="fulfillment">Receive your house</label><div class="select-wrap"><select id="fulfillment"><option>Free shipping — assembly required</option><option>Personal pickup — arrange directly</option><option>Delivery — additional fee</option></select></div></div>
               <div class="request-field request-field-wide"><label class="field-label" for="notes">Location and questions <span id="notesOptional">(optional)</span></label><textarea id="notes" rows="3" placeholder="City or ZIP, and any questions"></textarea></div>
             </div>
-            <button class="button button-primary button-large request-submit" type="submit">Email my build request <span aria-hidden="true">↗</span></button><div class="request-backups"><button id="copyBuild" type="button">Copy build details</button><button id="downloadBuild" type="button">Download build details</button></div>
-            <p class="request-note">Opens an email draft for you to review and send. No order or payment is placed here. Or email <a href="mailto:salesandinfo@thedogehouse.com">salesandinfo@thedogehouse.com</a>.</p><p id="requestStatus" role="status" aria-live="polite"></p>
+            <button class="button button-primary button-large request-submit" id="submitOrder" type="submit">Submit order request <span aria-hidden="true">↗</span></button><div class="request-backups"><button id="copyBuild" type="button">Copy build details</button><button id="downloadBuild" type="button">Download build details</button></div>
+            <p class="request-note">Submitting creates an order request awaiting DogeHouse confirmation. Your total and both images are sent to the team. Payment and delivery costs are arranged after confirmation. Or email <a href="mailto:salesandinfo@thedogehouse.com">salesandinfo@thedogehouse.com</a>.</p><p id="requestStatus" role="status" aria-live="polite"></p>
           </form>
         </section>
   </div>
@@ -1067,9 +1067,9 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
     <p id="accountIdentity"></p>
     <form id="accountSaveForm"><label for="savedBuildName">Name this build</label><input id="savedBuildName" maxlength="80" required placeholder="Buddy’s porch house"><div class="account-actions"><button class="button button-primary" type="submit">Save current build</button><button id="accountRefresh" class="button account-secondary" type="button">Refresh builds</button></div></form>
     <p class="save-privacy">Your full 3D design is saved to your account and shared with the DogeHouse team for review.</p>
-    <div id="designLibraryTabs" class="account-actions"><button id="accountOwnDesigns" type="button" class="button account-secondary" aria-pressed="true">My designs</button><button id="accountCustomerDesigns" type="button" class="button account-secondary" aria-pressed="false" hidden>Customer designs</button></div>
+    <div id="designLibraryTabs" class="account-actions"><button id="accountOwnDesigns" type="button" class="button account-secondary" aria-pressed="true">Saved builds</button><button id="accountOwnOrders" type="button" class="button account-secondary" aria-pressed="false">Ordered builds</button><button id="accountCustomerDesigns" type="button" class="button account-secondary" aria-pressed="false" hidden>Customer saved builds</button><button id="accountCustomerOrders" type="button" class="button account-secondary" aria-pressed="false" hidden>Customer ordered builds</button></div>
     <p id="ownerSetupStatus" hidden></p>
-    <h3 id="designLibraryHeading">My designs</h3>
+    <h3 id="designLibraryHeading">Saved builds</h3>
     <ul id="savedBuildList" class="saved-builds"></ul>
     <div class="account-actions"><button id="designPrevious" type="button" class="button account-secondary" hidden>Previous designs</button><button id="designNext" type="button" class="button account-secondary" hidden>More designs</button></div>
     <button id="accountSignout" class="button account-secondary" type="button">Sign out</button>

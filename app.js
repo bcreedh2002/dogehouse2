@@ -35,7 +35,27 @@
  async function copy(text,status){try{await navigator.clipboard.writeText(text);status.textContent='Copied. Paste the details into an email to salesandinfo@thedogehouse.com.';}catch{status.textContent='Copy is unavailable here. Download the details or email salesandinfo@thedogehouse.com.';}}
  $('copyBuild').addEventListener('click',()=>copy(spec(),$('requestStatus')));
  $('downloadBuild').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([spec()],{type:'text/plain;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download='dogehouse-build-request.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('requestStatus').textContent='Build details downloaded. Attach them to your email request.';});
- $('requestForm').addEventListener('submit',e=>{e.preventDefault();location.href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('DogeHouse build request')+'&body='+encodeURIComponent(spec());$('requestStatus').textContent='Your email app should open. Press Send there to submit your request.';});
+ let submitting=false,requestCache=null;
+ try{requestCache=JSON.parse(sessionStorage.getItem('dogehouse-order-request')||'null');}catch{}
+ function fingerprint(userId){const build=window.DogeHouseBuild.read();return JSON.stringify({userId,studio:build.studio,customer:build.customer});}
+ function saveRequest(){try{sessionStorage.setItem('dogehouse-order-request',JSON.stringify(requestCache));}catch{}}
+ function refreshOrderButton(){const button=$('submitOrder');const same=requestCache?.submitted&&requestCache.fingerprint===fingerprint(window.DogeHouseOrders?.userId());button.disabled=submitting||same;button.textContent=submitting?'Submitting request…':same?'Order request submitted':'Submit order request';}
+ window.addEventListener('dogehouse:design-change',refreshOrderButton);window.addEventListener('dogehouse:account-change',refreshOrderButton);
+ for(const id of customerFields)$(id).addEventListener('input',refreshOrderButton);
+ $('requestForm').addEventListener('submit',async event=>{
+  event.preventDefault();if(submitting)return;submitting=true;refreshOrderButton();$('requestStatus').textContent='Preparing your request and both design images…';
+  try{
+   const userId=await window.DogeHouseOrders.requireUser();const signature=fingerprint(userId);
+   if(!requestCache||requestCache.fingerprint!==signature)requestCache={fingerprint:signature,requestId:crypto.randomUUID(),submitted:false};saveRequest();
+   const build=window.DogeHouseBuild.read();build.preview=await window.DogeHouseStudioBridge.capture();
+   if(fingerprint(window.DogeHouseOrders.userId())!==signature)throw Error('Your design or account changed. Review it and submit again.');
+   const receipt=await window.DogeHouseOrders.submit({requestId:requestCache.requestId,build});
+   requestCache.submitted=true;requestCache.orderId=receipt.orderId;saveRequest();
+   $('requestStatus').textContent=receipt.emailStatus==='sent'?'Order request received. Both design images were emailed to DogeHouse. View it in Ordered builds.':'Order request received and saved in Ordered builds. The email notification is pending; you can retry it there.';
+  }catch(error){$('requestStatus').textContent=error.message||'Your request could not be submitted. Please try again.';}
+  finally{submitting=false;refreshOrderButton();}
+ });
+ refreshOrderButton();
  $('moduleIdeaForm').addEventListener('submit',e=>{e.preventDefault();location.href='mailto:salesandinfo@thedogehouse.com?subject='+encodeURIComponent('DogeHouse module idea')+'&body='+encodeURIComponent($('moduleIdea').value.trim());$('ideaStatus').textContent='Your email app should open. Press Send there to share your idea.';});
  $('copyIdea').addEventListener('click',()=>{const idea=$('moduleIdea').value.trim();if(!idea){$('ideaStatus').textContent='Enter a module idea first.';return;}copy(idea,$('ideaStatus'));});
  for(const id of customerFields)$(id).addEventListener('input',saveCustomer);$('fulfillment').addEventListener('change',updateFulfillment);

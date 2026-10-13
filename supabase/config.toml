@@ -1,0 +1,6 @@
+project_id = "dogehouse2"
+
+[functions.submit-order]
+# The handler validates every bearer token through Supabase Auth before using
+# service-role access. This supports current publishable keys and JWT signing keys.
+verify_jwt = false
