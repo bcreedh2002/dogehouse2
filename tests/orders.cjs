@@ -5,6 +5,12 @@ const assert=require('node:assert/strict');
  const jpeg='data:image/jpeg;base64,'+Buffer.from([255,216,255,224,0,255,217]).toString('base64');
  const payload={requestId:'22222222-2222-4222-8222-222222222222',build:{version:2,studio:globalThis.DogeHouseStudioState({nameplate:'BUDDY',roofType:'metal',win:true}),customer:{customerName:'<script>test</script>',customerEmail:'contact@example.com',fulfillment:'Free shipping — assembly required',notes:'Hello & goodbye'},preview:{backLeft:jpeg,frontRight:jpeg},quote:{total:1}}};
  const prepared=prepareOrder(payload,user);assert.equal(prepared.totalCents,48400);assert.equal(prepared.userId,user.id);assert.equal(prepared.build.account.email,user.email);
+ const allModules={storageDrawer:true,swapPanels:true,legExtensions:true,porchAwning:true,weatherLiner:true,ramp:true,bowlHolder:true,doorFlap:true};
+ const moduleStudio=globalThis.DogeHouseStudioState(allModules),moduleQuote=globalThis.DogeHouseStudioPricing(moduleStudio);
+ const modulePrices=[['Storage drawer',45],['Swap panels',35],['Leg extensions',25],['Porch awning',45],['Weather liner',55],['Ramp',40],['Bowl holder',22],['Door flap',18]];
+ assert.equal(moduleQuote.total,634);for(const item of modulePrices)assert.ok(moduleQuote.items.some(([label,amount])=>label===item[0]&&amount===item[1]));
+ const moduleBuild={...payload,build:{...payload.build,studio:moduleStudio,quote:{total:1}}},moduleOrder=prepareOrder(moduleBuild,user);
+ assert.equal(moduleOrder.totalCents,63400);assert.equal(moduleOrder.build.quote.total,634);for(const key of Object.keys(allModules))assert.equal(moduleOrder.build.studio[key],true);
  let sends=0,creates=0,fail=false,stored=null,mail=null;
  const backend={emailReady:true,from:'DogeHouse <orders@thedogehouse.com>',siteUrl:'https://bcreedh2002.github.io/dogehouse2/',allowedOrigins:['https://bcreedh2002.github.io'],authenticate:async token=>token==='valid'?user:null,
  create:async input=>{creates++;if(!stored)stored={id:'33333333-3333-4333-8333-333333333333',user_id:input.userId,name:input.name,build:input.build,total_cents:input.totalCents,status:'requested',email_status:'queued',email_attempts:0};return {...stored};},

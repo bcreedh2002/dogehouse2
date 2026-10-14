@@ -105,13 +105,17 @@ The SDK loads locally without a CDN. See `vendor/README.md` and
 
 ## Embedded 3D studio
 
-Customize embeds a local copy of dogehouse1 in a full-width iframe. The embedded studio is the only customization interface; old parent color,
+Customize embeds the local 3D studio in a full-width iframe. The embedded studio is the only customization interface; old parent color,
 nameplate, schematic-preview, and add-on controls have been removed. Extra studio materials, graphics,
 and placements are retained in browser-session drafts and Supabase saved builds.
+The Add-ons section includes storage drawer, swap panels, leg extensions, porch
+awning, weather liner, ramp, bowl holder, and door flap, each with a 3D model part.
+Their displayed prices are estimates pending maker confirmation. Designs saved
+before these fields existed load with all eight modules turned off.
 Older builds without studio data reset it to defaults. The studio price list sets the $349 base and option prices throughout review and
 downloads. viewer/pricing.js is the single shared source for those prices. Three.js loads locally. See viewer/README.md
 for source provenance. Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node
-tests/viewer.cjs` for rendering, syncing, and saved-state checks.
+tests/viewer.cjs` for rendering, syncing, module pricing, save/load, and legacy-state checks.
 
 ## Saved designs, previews, and owner review
 
