@@ -36,6 +36,10 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
    else if(url.pathname.endsWith('/submit-order')){
     const input=req.postDataJSON();assert.equal(req.headers().authorization,'Bearer '+jwt);assert.ok(input.build.preview.backLeft.startsWith('data:image/jpeg;base64,'));assert.ok(input.build.preview.frontRight.startsWith('data:image/jpeg;base64,'));orderCalls.push(input);
     if(failOrder){status=503;body={error:'Please retry the same request.'};}else{if(!orders.length)orders.push({id:'44444444-4444-4444-8444-444444444444',request_id:input.requestId,name:'BUDDY order',build:input.build,total_cents:34900,status:'requested',email_status:'sent',email_attempts:1,created_at:new Date().toISOString()});orders[0].email_status='sent';body={orderId:orders[0].id,emailStatus:'sent',status:'requested',totalCents:34900};}
+   }else if(url.pathname.endsWith('/approve_dogehouse_quote')){
+    assert.ok(ownerAccess);const input=req.postDataJSON();assert.equal(input.p_order_id,orders[0].id);assert.equal(input.p_amount_cents,42050);orders[0].approved_total_cents=input.p_amount_cents;orders[0].payment_status='unpaid';orders[0].status='confirmed';body=null;
+   }else if(url.pathname.endsWith('/pay-order')){
+    assert.deepEqual(req.postDataJSON(),{orderId:orders[0].id});orders[0].payment_status='paid';body={paid:true};
    }else if(url.pathname.endsWith('/dogehouse_orders')){assert.equal(req.method(),'GET');assert.equal(url.searchParams.get('user_id'),`eq.${user.id}`);body=orders;}
    else if(url.pathname.endsWith('/dogehouse_customer_orders')){assert.ok(ownerAccess);body=orders.map(row=>({...row,customer_email:'customer@example.com'}));}
    else if(url.pathname.endsWith('/dogehouse_builds')){
@@ -71,6 +75,13 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
   await page.locator('#page-review > header .account-launch').click();await page.getByRole('button',{name:'Ordered builds',exact:true}).click();await page.locator('#designLibraryHeading').filter({hasText:'Ordered builds'}).waitFor();assert.ok((await page.locator('#savedBuildList').textContent()).includes('BUDDY order'));assert.equal(await page.locator('#savedBuildList').getByRole('button',{name:/Delete/}).count(),0);assert.equal(await page.locator('.design-previews img').count(),2);
   orders[0].email_status='failed';await page.getByRole('button',{name:'Refresh builds',exact:true}).click();await page.getByRole('button',{name:'Retry email',exact:true}).click();await page.locator('#accountStatus').filter({hasText:'Both design images were emailed'}).waitFor();assert.equal(orderCalls.length,3);assert.equal(orderCalls[2].requestId,orders[0].request_id);assert.equal(orders.length,1);
   await page.getByRole('button',{name:'Customer ordered builds',exact:true}).click();await page.locator('#designLibraryHeading').filter({hasText:'Customer ordered builds'}).waitFor();assert.ok((await page.locator('#savedBuildList').textContent()).includes('customer@example.com'));
+  await page.getByLabel('Final total in USD, including shipping and tax').fill('420.50');
+  page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Approve final quote',exact:true}).click();
+  await page.locator('#accountStatus').filter({hasText:'Quote approved'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Approve final quote',exact:true}).count(),0);
+  await page.getByRole('button',{name:'Ordered builds',exact:true}).click();await page.getByRole('button',{name:'Pay $420.50',exact:true}).click();
+  await page.locator('#accountStatus').filter({hasText:'Payment confirmed'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Pay $420.50',exact:true}).count(),0);assert.ok((await page.locator('#savedBuildList').textContent()).includes('Paid'));
   await page.getByRole('button',{name:'Saved builds',exact:true}).click();await page.locator('#designLibraryHeading').filter({hasText:'Saved builds'}).waitFor();assert.ok((await page.locator('#savedBuildList').textContent()).includes('<b>Buddy</b>'));
   failSave=true;await page.locator('#savedBuildName').fill('Denied');await page.getByRole('button',{name:'Save current build',exact:true}).click();await page.locator('#accountStatus').filter({hasText:'Save denied'}).waitFor();assert.equal(rows.length,1);
   page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Delete <b>Buddy</b>',exact:true}).click();await page.locator('#accountStatus').filter({hasText:'Design deleted'}).waitFor();assert.equal(rows.length,0);

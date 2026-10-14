@@ -1,0 +1,24 @@
+name: Deploy DogeHouse payments
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dogehouse-payments
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.75.0
+      - name: Deploy payment functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -eu
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          supabase functions deploy pay-order --project-ref lftpzfnzokjqgeteitul --no-verify-jwt --use-api
+          supabase functions deploy stripe-webhook --project-ref lftpzfnzokjqgeteitul --no-verify-jwt --use-api

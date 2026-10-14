@@ -4,3 +4,11 @@ project_id = "dogehouse2"
 # The handler validates every bearer token through Supabase Auth before using
 # service-role access. This supports current publishable keys and JWT signing keys.
 verify_jwt = false
+
+[functions.pay-order]
+# Validates the bearer token through Supabase Auth.
+verify_jwt = false
+
+[functions.stripe-webhook]
+# Stripe signs the raw request body; the handler verifies it.
+verify_jwt = false
