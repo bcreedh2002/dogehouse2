@@ -12,3 +12,5 @@
 @media(max-width:600px){.review-thumbnails{grid-template-columns:1fr}}
 
 #route-review:checked ~ #page-builder #page-review>.site-header{width:100%;box-sizing:border-box;align-self:stretch;gap:20px}
+
+#page-builder .builder-shell{padding-top:20px}
