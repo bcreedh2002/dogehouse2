@@ -246,3 +246,24 @@ contents, input limits, safe HTML, provider failure/retry, concurrent email clai
 actual PostgreSQL policies, rate limiting and migration repeatability. Browser
 checks also exercise submission retries using the same request ID and the separate
 customer/owner views. No test sends a real email or places a live order.
+
+## Latest studio port
+
+The embedded studio follows dogehouse1 commit `395756d`: single/gable roofs,
+undo/redo, editable/duplicated neon, fit estimation, improved mobile controls and
+render recovery. **Save to account** opens the existing account library; **Review
+and order** opens the existing two-thumbnail order flow. **Browser backups**
+provide optional on-device saves, updates, automatic draft recovery and JSON
+transfer. These backups stay on that device and are separate from cloud saved
+builds and order records. Imported dogehouse1 backups can be loaded in the viewer,
+then saved to an account. Fit measurements are planning advice and do not change
+the model’s dimensions or quoted price.
+
+Old saved builds default to single-slope roofs. The shared normalization clamps
+graphics to each roof shape and server pricing matches the viewer. Deploy the
+updated ordering function along with the site so gable designs are validated
+correctly. No SQL migration or new credential is needed for this port.
+
+Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/studio-updates.cjs`
+for the new rendering, history, neon, fit, browser backup, account shortcut and
+mobile-resize checks.
