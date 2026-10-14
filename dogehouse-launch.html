@@ -889,6 +889,7 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 <input class="page-route" type="radio" name="page-route" id="route-builder">
 <input class="page-route" type="radio" name="page-route" id="route-modules">
 <input class="page-route" type="radio" name="page-route" id="route-review">
+<input class="page-route" type="radio" name="page-route" id="route-owner">
 
 
 <!-- Native configurator state: these controls work even when preview JavaScript is blocked -->
@@ -1051,6 +1052,19 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 
 
 
+<div id="page-owner" class="preview-page" hidden>
+ <header class="site-header"><a href="#home" class="brand"><span class="brand-mark" aria-hidden="true">DH</span><span class="brand-name">DOGEHOUSE</span></a><a href="#home" class="text-link">Back to website</a></header>
+ <main class="owner-dashboard" aria-labelledby="ownerTitle">
+  <div class="owner-heading"><div><p class="owner-eyebrow">DogeHouse team</p><h1 id="ownerTitle">Owner dashboard</h1><p>Customer designs and order requests, all in one place.</p></div><button id="ownerRefresh" class="button account-secondary" type="button">Refresh dashboard</button></div>
+  <div class="owner-metrics" aria-label="Dashboard totals">
+   <div><span>Saved builds</span><strong id="ownerSavedCount">—</strong></div><div><span>Order requests</span><strong id="ownerOrderCount">—</strong></div><div><span>Awaiting confirmation</span><strong id="ownerRequestedCount">—</strong></div><div><span>Emails needing attention</span><strong id="ownerEmailCount">—</strong></div>
+  </div>
+  <p class="owner-note">Orders are requests awaiting confirmation. No payment is collected here. Email sent means the provider accepted the notification.</p>
+  <div class="owner-tabs" role="group" aria-label="Customer records"><button id="ownerOrdersTab" class="button account-secondary" aria-pressed="true" type="button">Order requests</button><button id="ownerSavedTab" class="button account-secondary" aria-pressed="false" type="button">Saved builds</button></div>
+  <h2 id="ownerLibraryTitle">Order requests</h2><p id="ownerStatus" role="status" aria-live="polite"></p><div id="ownerRecords" class="owner-records"></div>
+  <div class="owner-pagination"><button id="ownerPrevious" class="button account-secondary" type="button" hidden>Previous page</button><span id="ownerPage"></span><button id="ownerNext" class="button account-secondary" type="button" hidden>Next page</button></div>
+ </main>
+</div>
 <dialog id="accountDialog" class="account-dialog" aria-labelledby="accountTitle">
   <div class="account-heading"><h2 id="accountTitle">Your DogeHouse builds</h2><button type="button" class="account-close" aria-label="Close account dialog">×</button></div>
   <p id="accountIntro">Sign in to save your builds and pick them up on any device.</p>
@@ -1076,6 +1090,7 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
   </section>
   <p id="accountStatus" class="account-status" role="status" aria-live="polite"></p>
 </dialog>
+<link rel="stylesheet" href="owner-dashboard.css">
 <script src="account-config.js"></script>
 <script src="vendor/supabase.js"></script>
 <script src="viewer/state.js"></script>
@@ -1083,5 +1098,6 @@ body:has(#addonNeon:checked):has(#addonWindow:checked):has(#addonGraphic:checked
 <script src="viewer-embed.js"></script>
 <script src="app.js"></script>
 <script src="accounts.js"></script>
+<script src="owner-dashboard.js"></script>
 </body>
 </html>

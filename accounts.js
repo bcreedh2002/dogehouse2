@@ -4,13 +4,16 @@
   const dialog = $('accountDialog');
   const config = window.DOGEHOUSE_ACCOUNT_CONFIG || {};
   let client, user = null, busy = false, revision = 0, recovering = false, isOwner = false, libraryMode = "mine", libraryPage = 0;
-  const pageSize=25;
+  const pageSize=25;let authGeneration=0,dashboardVerified=false;
+  const dashboardAllowed=()=>Boolean(user&&!recovering&&isOwner&&dashboardVerified&&user.email?.toLowerCase()==='salesandinfo@thedogehouse.com');
+  const ownerLaunchers=[];
+  function publishOwner(){ownerLaunchers.forEach(link=>link.hidden=!dashboardAllowed());window.dispatchEvent(new Event('dogehouse:owner-change'));}
   const launchers = [];
   const status = message => { $('accountStatus').textContent = message; };
   const redirectUrl = () => location.origin + location.pathname;
   function showUser(nextUser) {
     const changed=user?.id!==nextUser?.id;
-    user = nextUser;
+    user = nextUser;authGeneration++;isOwner=false;dashboardVerified=false;$('accountCustomerDesigns').hidden=true;$('accountCustomerOrders').hidden=true;publishOwner();
     if(changed){isOwner=false;libraryMode='mine';libraryPage=0;$('accountCustomerDesigns').hidden=true;$('accountCustomerOrders').hidden=true;$('ownerSetupStatus').hidden=true;}
     revision++;window.dispatchEvent(new Event('dogehouse:account-change'));
     $('accountAuthForm').hidden = !client || Boolean(user) || recovering;
@@ -36,14 +39,15 @@
   }
   async function checkOwner() {
     if(!user)return;
-    const owner=user.id;
+    const owner=user.id,generation=authGeneration;
     const {data,error}=await client.rpc('is_dogehouse_owner');
-    if(!user||user.id!==owner)return;
-    isOwner=!error&&data===true;
+    if(!user||user.id!==owner||generation!==authGeneration)return;
+    isOwner=!error&&data===true;dashboardVerified=false;
+    if(isOwner&&user.email?.toLowerCase()==='salesandinfo@thedogehouse.com'){const verified=await client.auth.getUser();if(!user||user.id!==owner||generation!==authGeneration)return;dashboardVerified=!verified.error&&verified.data.user?.id===owner&&verified.data.user?.email?.toLowerCase()==='salesandinfo@thedogehouse.com';}
     $('accountCustomerDesigns').hidden=!isOwner;$('accountCustomerOrders').hidden=!isOwner;
     $('ownerSetupStatus').hidden=!error||user.email!=='salesandinfo@thedogehouse.com';
     $('ownerSetupStatus').textContent=error?'Customer designs are unavailable right now. Your own saved designs still work.':'';
-    if(!isOwner&&libraryMode.startsWith('customer'))libraryMode='mine';
+    if(!isOwner&&libraryMode.startsWith('customer'))libraryMode='mine';publishOwner();
   }
   function validPreview(value){return typeof value==='string'&&value.length<=600000&&/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(value);}
   function previewElement(preview,name){
@@ -109,6 +113,7 @@
     const button = document.createElement('button'); button.type = 'button'; button.className = 'account-launch'; button.textContent = 'Sign in / Save builds'; button.setAttribute('aria-haspopup', 'dialog');
     button.addEventListener('click', openAccount);
     header.append(button); launchers.push(button);
+    const ownerLink=document.createElement('a');ownerLink.href='#dashboard';ownerLink.className='owner-launch';ownerLink.textContent='Dashboard';ownerLink.hidden=true;header.append(ownerLink);ownerLaunchers.push(ownerLink);
   });
   document.querySelectorAll('[data-account-open]').forEach(button=>button.addEventListener('click',openAccount));
   dialog.querySelector('.account-close').addEventListener('click', () => dialog.close());
@@ -186,17 +191,38 @@
         showUser(session?.user || null);
         // Defer SDK calls until the auth callback releases its lock.
         if(recovering){if(!dialog.open)dialog.showModal();status('Choose a new password below.');}
-        else if(dialog.open && user)setTimeout(()=>operation(refreshBuilds),0);
+        else if(user)setTimeout(async()=>{try{await checkOwner();if(dialog.open&&user)await operation(refreshBuilds);}catch{isOwner=false;publishOwner();}},0);
       });
       client.auth.initialize().then(({error}) => {
         if(error){if(!dialog.open)dialog.showModal();status('This sign-in or password-reset link is invalid or expired. Please request a new link.');}
       });
-      client.auth.getSession().then(({data,error}) => {
+      client.auth.getSession().then(async ({data,error}) => {
         if(error){status('Could not restore your account session. Please sign in again.');return;}
-        showUser(data.session?.user || null);
+        showUser(data.session?.user || null);if(user&&!recovering)await checkOwner();
       }).catch(()=>status('Could not restore your account session. Please try again.'));
     }
   }catch{client=null;}
+  window.DogeHouseOwner={
+    userId:()=>user?.id||null,
+    isAuthorized:dashboardAllowed,
+    async load(mode,page){
+      const generation=authGeneration,identity=user?.id;
+      if(!client||!dashboardAllowed())throw Error('Owner access required.');
+      const verified=await client.auth.getUser();
+      if(verified.error||verified.data.user?.id!==identity||verified.data.user?.email?.toLowerCase()!=='salesandinfo@thedogehouse.com'||generation!==authGeneration)throw Error('Please sign in again.');
+      await checkOwner();if(!dashboardAllowed()||generation!==authGeneration)throw Error('Owner access required.');
+      const results=await Promise.all([
+        client.rpc(mode==='orders'?'dogehouse_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize}),
+        client.from('dogehouse_builds').select('id',{head:true,count:'exact'}),
+        client.from('dogehouse_orders').select('id',{head:true,count:'exact'}),
+        client.from('dogehouse_orders').select('id',{head:true,count:'exact'}).eq('status','requested'),
+        client.from('dogehouse_orders').select('id',{head:true,count:'exact'}).neq('email_status','sent')
+      ]);
+      if(generation!==authGeneration||user?.id!==identity||!dashboardAllowed())throw Error('Your account changed.');
+      if(results.some(result=>result.error))throw Error('Dashboard data could not be loaded. Refresh to try again.');
+      return {rows:results[0].data,counts:results.slice(1).map(result=>result.count),pageSize,total:results[mode==='orders'?2:1].count};
+    }
+  };
   window.DogeHouseOrders={
     userId:()=>user?.id||null,
     async requireUser(){

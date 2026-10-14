@@ -13,7 +13,7 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
   assert.equal(await page.locator('#accountAuthForm').isVisible(),false);
   await page.getByRole('button',{name:'Close account dialog'}).click();
   await page.locator('#page-home [data-page="customize"]').first().click();
-  const studio=page.frameLocator('#studioFrame');await studio.locator('#v canvas').waitFor();await studio.locator('input[data-k="nameplate"]').fill('BUDDY');await studio.locator('input[data-k="body"]').fill('#123456');
+  const studio=page.frameLocator('#studioFrame');await studio.locator('#v canvas').waitFor();await studio.locator('#viewer-status').waitFor({state:'hidden'});await studio.locator('input[data-k="nameplate"]').fill('BUDDY');await studio.locator('input[data-k="body"]').fill('#123456');
   await studio.locator('details').filter({has:studio.locator('[data-k="roofShape"]')}).locator('summary').click();await studio.locator('[data-k="roofShape"][data-v="gable"]').click();
   const user={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.com',aud:'authenticated',role:'authenticated',created_at:new Date().toISOString()};
   const jwt=[{alg:'HS256',typ:'JWT'},{sub:user.id,exp:Math.floor(Date.now()/1000)+3600,iat:Math.floor(Date.now()/1000),aud:'authenticated',role:'authenticated'}].map(value=>Buffer.from(JSON.stringify(value)).toString('base64url')).join('.')+'.mock-signature';
