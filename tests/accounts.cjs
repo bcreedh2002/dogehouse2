@@ -41,7 +41,7 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
    }else if(url.pathname.endsWith('/pay-order')){
     assert.deepEqual(req.postDataJSON(),{orderId:orders[0].id});orders[0].payment_status='paid';body={paid:true};
    }else if(url.pathname.endsWith('/dogehouse_orders')){assert.equal(req.method(),'GET');assert.equal(url.searchParams.get('user_id'),`eq.${user.id}`);body=orders;}
-   else if(url.pathname.endsWith('/dogehouse_customer_orders')){assert.ok(ownerAccess);body=orders.map(row=>({...row,customer_email:'customer@example.com'}));}
+   else if(url.pathname.endsWith('/dogehouse_managed_customer_orders')){assert.ok(ownerAccess);body=orders.map(row=>({...row,customer_email:'customer@example.com'}));}
    else if(url.pathname.endsWith('/dogehouse_builds')){
     if(req.method()==='POST'){
      if(failSave){status=403;body={message:'Save denied',code:'42501'};}
@@ -74,6 +74,7 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
   failOrder=false;await page.locator('#submitOrder').click();await page.locator('#requestStatus').filter({hasText:'Both design images were emailed'}).waitFor();assert.equal(orderCalls.length,2);assert.equal(orderCalls[0].requestId,orderCalls[1].requestId);assert.equal(orders.length,1);assert.equal(await page.locator('#submitOrder').isDisabled(),true);
   await page.locator('#page-review > header .account-launch').click();await page.getByRole('button',{name:'Ordered builds',exact:true}).click();await page.locator('#designLibraryHeading').filter({hasText:'Ordered builds'}).waitFor();assert.ok((await page.locator('#savedBuildList').textContent()).includes('BUDDY order'));assert.equal(await page.locator('#savedBuildList').getByRole('button',{name:/Delete/}).count(),0);assert.equal(await page.locator('.design-previews img').count(),2);
   orders[0].email_status='failed';await page.getByRole('button',{name:'Refresh builds',exact:true}).click();await page.getByRole('button',{name:'Retry email',exact:true}).click();await page.locator('#accountStatus').filter({hasText:'Both design images were emailed'}).waitFor();assert.equal(orderCalls.length,3);assert.equal(orderCalls[2].requestId,orders[0].request_id);assert.equal(orders.length,1);
+  orders[0].status='confirmed';orders[0].fulfillment_status='ready';await page.getByRole('button',{name:'Refresh builds',exact:true}).click();await page.locator('#savedBuildList').filter({hasText:'Confirmed · Ready'}).waitFor();
   await page.getByRole('button',{name:'Customer ordered builds',exact:true}).click();await page.locator('#designLibraryHeading').filter({hasText:'Customer ordered builds'}).waitFor();assert.ok((await page.locator('#savedBuildList').textContent()).includes('customer@example.com'));
   await page.getByLabel('Final total in USD, including shipping and tax').fill('420.50');
   page.once('dialog',dialog=>dialog.accept());await page.getByRole('button',{name:'Approve final quote',exact:true}).click();

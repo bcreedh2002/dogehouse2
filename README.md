@@ -223,8 +223,9 @@ Supabase's separate authentication SMTP service.
 The handler verifies every bearer token through Supabase Auth even though gateway
 `verify_jwt` is disabled to support current signing keys. It recalculates pricing
 from the same studio price file used by the viewer and limits payload size.
-Customers and the owner have read-only order access; only the server can insert
-or update orders. The default allowed browser origin is the origin of `SITE_URL`;
+Direct order-table access is read-only for browser users; only the server can
+insert orders. The protected owner management RPC can update status and progress
+metadata without changing an order’s design or price. The default allowed browser origin is the origin of `SITE_URL`;
 set `ALLOWED_ORIGINS` to a comma-separated list of exact origins if needed.
 
 An order is saved before sending email. Missing email settings leave it queued;
@@ -232,7 +233,8 @@ provider failures leave it pending with **Retry email** available in the custome
 Ordered builds. Retries reuse the original order and previews. Atomic claims,
 stable provider idempotency keys, five email attempts, and five new requests per
 account per hour limit duplicate submissions and abuse. There is no automatic
-background email queue or payment/confirmation UI in this change. Review pending
+background email queue or payment collection. Owner confirmation and fulfillment
+controls are described below. Review pending
 email statuses in the owner view and contact customers directly as needed.
 Resend's idempotency window is finite; an ambiguous provider response followed by
 an unusually delayed retry can still result in a duplicate notification.
@@ -290,10 +292,10 @@ totals. Email sent means provider acceptance, not confirmed inbox delivery.
 Access requires the existing protected owner RPC and a server-verified account
 email. Auth changes immediately clear dashboard data and navigation; stale reads
 are ignored using a session generation guard. Existing paginated owner RPCs and
-row-level policies enforce the underlying customer data access. No new SQL
-migration or secret is needed if the owner and order migrations are already
-applied. This dashboard does not change order statuses, collect payments, delete
-customer records or resend customer emails on the owner's behalf.
+row-level policies enforce the underlying customer data access. Run `supabase/order-management.sql` after the owner and order migrations to
+enable the current dashboard controls. No new secret or Edge Function deployment
+is required. The dashboard does not collect payments, delete customer records
+or resend customer emails on the owner's behalf.
 
 Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/owner-dashboard.cjs`
 for real-SDK mocked browser checks of access denial, session restoration, exact
@@ -302,3 +304,42 @@ opening/downloading designs, mobile layout, same-owner session re-verification,
 failed server identity/count/record queries, recovery and sign-out while a
 response is pending. The existing owner SQL
 tests cover the actual underlying read-only policies.
+
+## Confirming orders and tracking fulfillment
+
+Before publishing these controls, run
+[`supabase/order-management.sql`](supabase/order-management.sql) in Supabase SQL
+Editor. It adds progress/version/update metadata and protected management/listing
+RPCs. The script can be rerun; existing order designs, prices and notification
+records remain unchanged. Keep the earlier `orders.sql` and owner-access migrations
+in place. No email credential change or Edge Function redeployment is needed.
+
+The owner dashboard offers **Confirm order** and **Cancel order**. Confirmation
+unlocks fulfillment: **Not started**, **In production**, **Ready**, **Completed**.
+Choose a stage and **Save fulfillment**. Stages can be corrected while the order
+is confirmed. Cancellation asks for confirmation, retains the record and progress,
+and is final in this interface. Completed orders cannot be cancelled without
+first correcting their fulfillment stage; confirmed orders cannot return to
+requested. Customers see confirmation/cancellation and fulfillment under
+**Ordered builds** after refreshing. No automatic customer email is sent when
+these statuses change.
+
+Only the confirmed salesandinfo owner with database membership can call the
+management RPC. The function locks the row and checks its version before updating
+only status/progress metadata. A stale tab receives a refresh message instead of
+overwriting another update. Direct table updates remain denied to browser users,
+including the owner. Last-update time and actor are recorded in Supabase.
+
+Validation:
+
+```sh
+NODE_PATH=/tmp/dogehouse-db-tests/node_modules node tests/order-management.cjs
+NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/owner-dashboard.cjs
+NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/accounts.cjs
+```
+
+Database tests execute the actual migration and verify authorization, concurrent
+version checks, status rules, immutable snapshots, customer progress reads and
+compatibility with the older listing. Browser tests mock service responses and
+exercise the controls, conflicts, totals, session handling and customer display.
+They do not modify live orders or send real emails.
