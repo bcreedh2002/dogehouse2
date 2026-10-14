@@ -38,7 +38,7 @@ button,select,input[type=color]{min-height:36px}.sw{width:32px;height:36px}.chip
 #sum div{display:flex;justify-content:space-between;padding:2px 0}
 </style></head><body>
 <div id="v"><div class="ov"><b>🐕 Doghouse Studio</b>Drag: orbit · Right-drag / two-finger: pan · Scroll / pinch: zoom · Drag wall graphics to move them</div>
-<div id="viewer-status" class="viewer-status"><p id="viewer-message" role="status" aria-live="polite">Loading the 3D viewer…</p><button id="retry-viewer" type="button" hidden>Retry viewer</button></div><div id="history-controls" role="group" aria-label="Edit history" inert><button id="undo-change" type="button" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button><button id="redo-change" type="button" title="Redo (Ctrl/Cmd+Shift+Z)" disabled>Redo</button></div><div id="vw" role="group" aria-label="Camera view" inert><button data-vw="0" aria-pressed="false">Iso</button><button data-vw="1" aria-pressed="false">Front</button><button data-vw="2" aria-pressed="false">Right</button><button data-vw="3" aria-pressed="false">Back</button><button data-vw="4" aria-pressed="false">Top</button><button id="xr">See-through roof</button></div></div>
+<div id="viewer-status" class="viewer-status"><p id="viewer-message" role="status" aria-live="polite">Loading the 3D viewer…</p><button id="retry-viewer" type="button" hidden>Retry viewer</button></div><div id="history-controls" role="group" aria-label="Edit history" inert><button id="undo-change" type="button" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button><button id="redo-change" type="button" title="Redo (Ctrl/Cmd+Shift+Z)" disabled>Redo</button></div><div id="vw" role="group" aria-label="Camera view" inert><button data-vw="0" aria-pressed="false">Iso</button><button data-vw="1" aria-pressed="false">Front</button><button data-vw="2" aria-pressed="false">Right</button><button data-vw="3" aria-pressed="false">Back</button><button data-vw="4" aria-pressed="false">Top</button><button id="xr">See-through roof</button><button id="export-planner-design" type="button" hidden>Export for planner</button></div></div>
 <div id="panel-resizer" role="separator" tabindex="0" aria-label="Resize preview and controls" aria-controls="p" aria-orientation="horizontal" aria-describedby="panel-resizer-help" title="Drag to resize. Double-click or press Enter to reset."></div><span id="panel-resizer-help" class="sr-only">Use arrow keys to resize the controls panel. Home shows more preview; End shows more controls. Enter resets the split.</span>
 <aside id="p" inert></aside>
 <script src="state.js"></script><script src="pricing.js"></script>
@@ -722,4 +722,14 @@ window.DogeHouseStudio={
 };
 upd();
 window.parent.dispatchEvent(new Event('dogehouse:studio-ready'));
+</script><script>
+(()=>{const button=document.getElementById('export-planner-design'),isAuthorized=()=>{try{return window.parent!==window&&window.parent.DogeHouseOwner?.isAuthorized()===true}catch{return false}};
+ function update(){button.hidden=!isAuthorized()}
+ window.addEventListener('dogehouse:owner-change',update);window.parent.addEventListener('dogehouse:owner-change',update);update();
+ button.addEventListener('click',()=>{if(!isAuthorized()){update();return}
+  try{const payload={schema:'dogehouse-design/v1',exportId:crypto.randomUUID(),exportedAt:new Date().toISOString(),productProfile:'dogehouse-medium-working-target',geometryStatus:'working-target-not-release',dimensions:{exteriorWidth:33,exteriorDepth:34,interiorWidth:32,interiorDepth:33,wallHeight:24,wallThickness:.5,doorwayWidth:13.75,doorwayStraightHeight:14.5,doorwayArchRise:6.25,doorwayPeakHeight:20.75},configuration:window.DogeHouseStudio.get()};
+   const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='dogehouse-medium-design.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }catch(error){button.title='Could not export the design. Please reload the viewer and try again.';console.error('DogeHouse planner export failed',error)}
+ });
+})();
 </script><script>window.doghouseBoot.initialize();</script></body></html>
