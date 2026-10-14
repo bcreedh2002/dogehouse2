@@ -28,6 +28,7 @@
   throw Error('This saved design has an unsupported format.');
  }
  window.DogeHouseBuild={
+  review(){navigate('review');},
   read(){return {version:2,studio:window.DogeHouseStudioBridge.read(),customer:customer(),quote:quote()};},
   decode,
   load(build){const design=decode(build);window.DogeHouseStudioBridge.restore(design.studio);restoreCustomer(design.customer);navigate('customize');}
