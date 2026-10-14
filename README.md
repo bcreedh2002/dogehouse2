@@ -293,6 +293,8 @@ customer records or resend customer emails on the owner's behalf.
 
 Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/owner-dashboard.cjs`
 for real-SDK mocked browser checks of access denial, session restoration, exact
-counts, paging/tabs, previews, escaped customer text, opening/downloading designs,
-mobile layout and sign-out while a response is pending. The existing owner SQL
+counts, paging/tabs and browser navigation, previews, escaped customer text,
+opening/downloading designs, mobile layout, same-owner session re-verification,
+failed server identity/count/record queries, recovery and sign-out while a
+response is pending. The existing owner SQL
 tests cover the actual underlying read-only policies.

@@ -203,6 +203,7 @@
     }
   }catch{client=null;}
   window.DogeHouseOwner={
+    userId:()=>user?.id||null,
     isAuthorized:dashboardAllowed,
     async load(mode,page){
       const generation=authGeneration,identity=user?.id;
