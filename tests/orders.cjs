@@ -11,6 +11,8 @@ const assert=require('node:assert/strict');
  assert.equal(moduleQuote.total,634);for(const item of modulePrices)assert.ok(moduleQuote.items.some(([label,amount])=>label===item[0]&&amount===item[1]));
  const moduleBuild={...payload,build:{...payload.build,studio:moduleStudio,quote:{total:1}}},moduleOrder=prepareOrder(moduleBuild,user);
  assert.equal(moduleOrder.totalCents,63400);assert.equal(moduleOrder.build.quote.total,634);for(const key of Object.keys(allModules))assert.equal(moduleOrder.build.studio[key],true);
+ const older=structuredClone(payload);delete older.build.studio.roofShape;assert.equal(prepareOrder(older,user).build.studio.roofShape,'single');
+ const gable=structuredClone(payload);gable.build.studio.roofShape='gable';assert.equal(prepareOrder(gable,user).build.quote.items[0][0],'Stock double-slope doghouse');assert.equal(prepareOrder(gable,user).totalCents,48400);
  let sends=0,creates=0,fail=false,stored=null,mail=null;
  const backend={emailReady:true,from:'DogeHouse <orders@thedogehouse.com>',siteUrl:'https://bcreedh2002.github.io/dogehouse2/',allowedOrigins:['https://bcreedh2002.github.io'],authenticate:async token=>token==='valid'?user:null,
  create:async input=>{creates++;if(!stored)stored={id:'33333333-3333-4333-8333-333333333333',user_id:input.userId,name:input.name,build:input.build,total_cents:input.totalCents,status:'requested',email_status:'queued',email_attempts:0};return {...stored};},

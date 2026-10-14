@@ -14,6 +14,7 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
   await page.getByRole('button',{name:'Close account dialog'}).click();
   await page.locator('#page-home [data-page="customize"]').first().click();
   const studio=page.frameLocator('#studioFrame');await studio.locator('#v canvas').waitFor();await studio.locator('input[data-k="nameplate"]').fill('BUDDY');await studio.locator('input[data-k="body"]').fill('#123456');
+  await studio.locator('details').filter({has:studio.locator('[data-k="roofShape"]')}).locator('summary').click();await studio.locator('[data-k="roofShape"][data-v="gable"]').click();
   const user={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.com',aud:'authenticated',role:'authenticated',created_at:new Date().toISOString()};
   const jwt=[{alg:'HS256',typ:'JWT'},{sub:user.id,exp:Math.floor(Date.now()/1000)+3600,iat:Math.floor(Date.now()/1000),aud:'authenticated',role:'authenticated'}].map(value=>Buffer.from(JSON.stringify(value)).toString('base64url')).join('.')+'.mock-signature';
   const session={access_token:jwt,refresh_token:'mock-refresh-token',expires_in:3600,token_type:'bearer',user};
@@ -40,7 +41,7 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
    else if(url.pathname.endsWith('/dogehouse_builds')){
     if(req.method()==='POST'){
      if(failSave){status=403;body={message:'Save denied',code:'42501'};}
-     else{const saved=req.postDataJSON();assert.equal(saved.user_id,user.id);assert.equal(saved.build.version,2);assert.ok(saved.build.preview.backLeft.startsWith('data:image/jpeg;base64,'));assert.ok(saved.build.preview.frontRight.startsWith('data:image/jpeg;base64,'));rows.push({...saved,id:'22222222-2222-4222-8222-222222222222',created_at:new Date().toISOString()});status=201;body=null;}
+     else{const saved=req.postDataJSON();assert.equal(saved.user_id,user.id);assert.equal(saved.build.version,2);assert.equal(saved.build.studio.roofShape,'gable');assert.ok(saved.build.preview.backLeft.startsWith('data:image/jpeg;base64,'));assert.ok(saved.build.preview.frontRight.startsWith('data:image/jpeg;base64,'));rows.push({...saved,id:'22222222-2222-4222-8222-222222222222',created_at:new Date().toISOString()});status=201;body=null;}
     }else if(req.method()==='DELETE'){assert.equal(url.searchParams.get('user_id'),`eq.${user.id}`);rows=[];status=204;}
     else{assert.equal(url.searchParams.get('user_id'),`eq.${user.id}`);body=rows;}
    }else throw Error(`Unexpected service request ${req.method()} ${url.pathname}`);

@@ -32,8 +32,8 @@ function preview(value:unknown){
 export function prepareOrder(input:ObjectData,user:{id:string;email:string}){
  if(!input||!uuid.test(input.requestId||''))throw new InputError('Invalid request identifier.');
  const build=input.build;if(build?.version!==2||!build.studio||Array.isArray(build.studio))throw new InputError('Save a current 3D design before submitting.');
- const studio=normalize(build.studio);
- for(const [key,value] of Object.entries(studio))if(JSON.stringify(build.studio[key])!==JSON.stringify(value))throw new InputError('Please review your design settings before submitting.');
+ const studio=normalize(build.studio),defaults=normalize({});
+ for(const [key,value] of Object.entries(studio))if(!(build.studio[key]===undefined&&JSON.stringify(value)===JSON.stringify(defaults[key]))&&JSON.stringify(build.studio[key])!==JSON.stringify(value))throw new InputError('Please review your design settings before submitting.');
  const customer=build.customer;if(!customer||typeof customer.customerName!=='string'||!customer.customerName.trim()||customer.customerName.length>120||typeof customer.customerEmail!=='string'||!email.test(customer.customerEmail)||customer.customerEmail.length>254)throw new InputError('Enter your name and a valid contact email.');
  if(!['Free shipping — assembly required','Personal pickup — arrange directly','Delivery — additional fee'].includes(customer.fulfillment)||typeof customer.notes!=='string'||customer.notes.length>10000||(customer.fulfillment.startsWith('Delivery')&&!customer.notes.trim()))throw new InputError('Enter your delivery location or choose another fulfillment option.');
  preview(build.preview?.backLeft);preview(build.preview?.frontRight);
