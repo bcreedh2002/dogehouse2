@@ -1,0 +1,41 @@
+const assert=require('node:assert/strict');
+const {createHmac}=require('node:crypto');
+(async()=>{
+ const {payHandler,webhookHandler,verifyStripeSignature}=await import('../supabase/functions/_shared/payments.ts');
+ const id='11111111-1111-4111-8111-111111111111',attempt='22222222-2222-4222-8222-222222222222';
+ let records=[],refunds=[],reserveCalls=0,session={id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/test',status:'open',payment_status:'unpaid',amount_total:42000,currency:'usd',payment_intent:null};
+ const backend={siteUrl:'https://example.com/site/',allowedOrigins:['https://example.com'],authenticate:async token=>token==='valid'?id:null,
+  reserve:async(order,user)=>{reserveCalls++;assert.equal(order,id);assert.equal(user,id);return {id:attempt,order_id:id,amount_cents:42000,session_id:null};},
+  checkout:async()=>session,record:async(...args)=>records.push(args),refund:async(...args)=>refunds.push(args)};
+ const pay=payHandler(backend);
+ const request=(body={orderId:id},token='valid',origin='https://example.com')=>new Request('https://project.supabase.co/functions/v1/pay-order',{method:'POST',headers:{origin,authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)});
+ assert.equal((await pay(request({},'invalid'))).status,401);assert.equal(reserveCalls,0);
+ assert.equal((await pay(request({orderId:id},'valid','https://evil.example'))).status,403);
+ assert.equal((await pay(request({orderId:'bad'}))).status,400);
+ assert.equal((await pay(request({orderId:id,padding:'x'.repeat(5000)}))).status,400);
+ assert.equal((await pay(new Request('https://example.com',{method:'OPTIONS',headers:{origin:'https://example.com'}}))).status,204);
+ assert.equal((await (await pay(request({orderId:id,amount:1,userId:'spoof'}))).json()).url,session.url);
+ assert.equal(records.length,0,'Returning from checkout cannot mark paid');
+ session={...session,url:'https://evil.example/pay'};assert.equal((await pay(request())).status,503);
+ session={...session,url:'https://checkout.stripe.com/c/pay/test',amount_total:1};assert.equal((await pay(request())).status,503);
+ session={...session,amount_total:42000,status:'expired'};assert.equal((await pay(request())).status,409);assert.deepEqual(records.pop(),[attempt,'cs_test_1',42000,false,null]);
+ session={...session,status:'complete',payment_status:'paid',payment_intent:'pi_test_1'};assert.deepEqual(await (await pay(request())).json(),{paid:true});assert.deepEqual(records.pop(),[attempt,'cs_test_1',42000,true,'pi_test_1']);
+ const reserve=backend.reserve;backend.reserve=async()=>{throw Error('Not payable')};assert.equal((await pay(request())).status,409);backend.reserve=reserve;
+ const secret='whsec_test_only',now=Math.floor(Date.now()/1000);
+ const sign=(raw,time=now)=>'t='+time+',v1='+createHmac('sha256',secret).update(time+'.'+raw).digest('hex');
+ assert.equal(await verifyStripeSignature('body',sign('body'),secret,now),true);
+ assert.equal(await verifyStripeSignature('changed',sign('body'),secret,now),false);
+ assert.equal(await verifyStripeSignature('body',sign('body',now-301),secret,now),false);
+ assert.equal(await verifyStripeSignature('body','t='+now+',v1='+'0'.repeat(64)+',v1='+sign('body').split('v1=')[1],secret,now),true);
+ const webhook=webhookHandler(backend,secret,false);
+ const event={id:'evt_test',livemode:false,type:'checkout.session.completed',data:{object:{...session,mode:'payment',metadata:{dogehouse_attempt_id:attempt}}}};
+ const deliver=async(value,signature)=>{const raw=JSON.stringify(value);return webhook(new Request('https://example.com/webhook',{method:'POST',headers:{'stripe-signature':signature||sign(raw)},body:raw}));};
+ assert.equal((await deliver(event,'bad')).status,400);assert.equal((await deliver({...event,livemode:true})).status,400);
+ assert.equal((await deliver(event)).status,200);assert.deepEqual(records.pop(),[attempt,'cs_test_1',42000,true,'pi_test_1']);
+ const unpaid=structuredClone(event);unpaid.data.object.payment_status='unpaid';assert.equal((await deliver(unpaid)).status,400);
+ assert.equal((await deliver({...event,type:'checkout.session.expired'})).status,200);assert.deepEqual(records.pop(),[attempt,'cs_test_1',42000,false,'pi_test_1']);
+ assert.equal((await deliver({livemode:false,type:'charge.refunded',data:{object:{currency:'usd',payment_intent:'pi_test_1',amount_refunded:10000,metadata:{dogehouse_attempt_id:attempt}}}})).status,200);
+ assert.deepEqual(refunds, [['pi_test_1',10000]]);
+ backend.record=async()=>{throw Error('Database unavailable')};assert.equal((await deliver(event)).status,500,'Stripe must retry failed persistence');
+ console.log('PASS: checkout authorization/origin/body limits, server amount, provider URL, expiry and paid reconciliation; signed raw-body webhook, timestamp/mode checks, refunds and retryable persistence. No Stripe requests or charges.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

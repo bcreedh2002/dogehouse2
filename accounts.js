@@ -66,7 +66,7 @@
     if(team){
       if(!isOwner)throw Error('Owner access required.');
       result=await client.rpc(orders?'dogehouse_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize});
-    }else result=await client.from(orders?'dogehouse_orders':'dogehouse_builds').select(orders?'id,request_id,name,build,total_cents,status,email_status,email_attempts,created_at':'id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
+    }else result=await client.from(orders?'dogehouse_orders':'dogehouse_builds').select(orders?'id,request_id,name,build,total_cents,status,email_status,email_attempts,created_at,approved_total_cents,payment_status':'id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
     const {data,error}=result;if(error)throw error;
     if(!user||user.id!==owner||revision!==currentRevision||mode!==libraryMode||page!==libraryPage||recovering)return;
     $('designLibraryHeading').textContent={mine:'Saved builds',mine_orders:'Ordered builds',customers:'Customer saved builds',customer_orders:'Customer ordered builds'}[mode];
@@ -87,6 +87,37 @@
         try{window.DogeHouseBuild.load(row.build);$('savedBuildName').value=row.name;dialog.close();}catch(error){status(error.message);}
       });
       item.append(title,details,previewElement(row.build.preview,row.name),load);
+      if(orders){
+        const payment=document.createElement('small');
+        const money=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
+        payment.textContent=row.approved_total_cents==null?'Payment available after DogeHouse confirms the final quote.':'Final total: '+money(row.approved_total_cents)+' · '+({unpaid:'Unpaid',paid:'Paid',partially_refunded:'Partially refunded',refunded:'Refunded'}[row.payment_status]||'Unpaid');
+        item.append(payment);
+        if(mode==='customer_orders'&&row.approved_total_cents==null&&row.status!=='cancelled'){
+          const form=document.createElement('form'),label=document.createElement('label'),amount=document.createElement('input'),approve=document.createElement('button');
+          label.textContent='Final total in USD, including shipping and tax ';
+          amount.type='text';amount.inputMode='decimal';amount.required=true;amount.maxLength=9;amount.placeholder='349.00';label.append(amount);
+          approve.type='submit';approve.textContent='Approve final quote';form.append(label,approve);
+          form.addEventListener('submit',event=>{event.preventDefault();operation(async()=>{
+            const value=amount.value.trim();if(!/^\d{1,6}(\.\d{1,2})?$/.test(value))throw Error('Enter a dollar amount with at most two decimal places.');
+            const [whole,fraction='']=value.split('.'),cents=Number(whole)*100+Number(fraction.padEnd(2,'0'));
+            if(cents<50||cents>10000000)throw Error('The final total must be between $0.50 and $100,000.');
+            if(!window.confirm('Approve '+money(cents)+' as the final total, including shipping and tax? This quote cannot be changed.'))return;
+            const {error}=await client.rpc('approve_dogehouse_quote',{p_order_id:row.id,p_amount_cents:cents});if(error)throw error;
+            await refreshBuilds();status('Quote approved. The customer can now pay from Ordered builds.');
+          });});item.append(form);
+        }
+        if(mode==='mine_orders'&&row.status==='confirmed'&&row.approved_total_cents!=null&&row.payment_status==='unpaid'){
+          const pay=document.createElement('button');pay.type='button';pay.textContent='Pay '+money(row.approved_total_cents);
+          pay.addEventListener('click',()=>operation(async()=>{
+            const {data,error}=await client.functions.invoke('pay-order',{body:{orderId:row.id}});
+            if(error){let message='Checkout is unavailable. Please try again.';try{message=(await error.context.json()).error||message;}catch{}throw Error(message);}
+            if(data?.paid){await refreshBuilds();status('Payment confirmed.');return;}
+            let checkout;try{checkout=new URL(data?.url);}catch{throw Error('Checkout is unavailable.');}
+            if(checkout.origin!=='https://checkout.stripe.com')throw Error('Checkout is unavailable.');
+            window.location.assign(checkout.href);
+          }));item.append(pay);
+        }
+      }
       if(orders&&mode==='mine_orders'&&row.email_status!=='sent'&&row.email_attempts<5){
         const retry=document.createElement('button');retry.type='button';retry.textContent='Retry email';
         retry.addEventListener('click',()=>operation(async()=>{const receipt=await window.DogeHouseOrders.submit({requestId:row.request_id,build:row.build});await refreshBuilds();status(receipt.emailStatus==='sent'?'Both design images were emailed to DogeHouse.':'Your request is saved; email delivery is still pending.');}));item.append(retry);

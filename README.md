@@ -1,5 +1,8 @@
 # DogeHouse: GitHub Pages + Supabase
 
+Stripe checkout after owner quote approval is available; see
+[PAYMENTS.md](PAYMENTS.md) for test-mode activation and operating instructions.
+
 The site remains static. Supabase provides email/password authentication,
 confirmation and password-reset emails, and private saved doghouse builds.
 Order requests use a small Supabase Edge Function; there is no self-hosted server or SQLite dependency.
