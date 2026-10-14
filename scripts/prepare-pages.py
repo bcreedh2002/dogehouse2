@@ -10,7 +10,7 @@ import shutil
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-PUBLIC_FILES = ["app.js", "accounts.js", "accounts.css", "viewer-embed.js", "viewer-embed.css",
+PUBLIC_FILES = ["owner-dashboard.js", "owner-dashboard.css", "app.js", "accounts.js", "accounts.css", "viewer-embed.js", "viewer-embed.css",
                 "viewer/index.html", "viewer/state.js", "viewer/pricing.js", "viewer/three.min.js", "viewer/OrbitControls.js",
                 "viewer/THREE-LICENSE", "viewer/README.md", "vendor/supabase.js",
                 "vendor/THIRD-PARTY-NOTICES.txt", "vendor/README.md"]

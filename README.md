@@ -267,3 +267,32 @@ correctly. No SQL migration or new credential is needed for this port.
 Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/studio-updates.cjs`
 for the new rendering, history, neon, fit, browser backup, account shortcut and
 mobile-resize checks.
+
+## Owner dashboard
+
+Sign in as the confirmed `salesandinfo@thedogehouse.com` owner and choose
+**Dashboard** in the header. `#dashboard` opens the dedicated page after verified
+owner access is restored. Other users and signed-out visitors do not see the
+page or its navigation and cannot request customer dashboard data.
+
+The dashboard opens with order requests and includes a separate saved-build tab,
+both design previews, verified account/contact details, fulfillment notes, order
+and email status, and read-only actions to open a design in 3D or download its
+JSON details. Totals are exact RLS-protected counts, not the current page length:
+saved builds, order requests, awaiting confirmation, and emails needing attention.
+Saved-build prices use current studio estimates; order prices use immutable stored
+totals. Email sent means provider acceptance, not confirmed inbox delivery.
+
+Access requires the existing protected owner RPC and a server-verified account
+email. Auth changes immediately clear dashboard data and navigation; stale reads
+are ignored using a session generation guard. Existing paginated owner RPCs and
+row-level policies enforce the underlying customer data access. No new SQL
+migration or secret is needed if the owner and order migrations are already
+applied. This dashboard does not change order statuses, collect payments, delete
+customer records or resend customer emails on the owner's behalf.
+
+Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/owner-dashboard.cjs`
+for real-SDK mocked browser checks of access denial, session restoration, exact
+counts, paging/tabs, previews, escaped customer text, opening/downloading designs,
+mobile layout and sign-out while a response is pending. The existing owner SQL
+tests cover the actual underlying read-only policies.
