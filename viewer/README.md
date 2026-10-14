@@ -16,7 +16,7 @@ graphics, roof-aware graphic placement, a dog fit estimator, dependent controls,
 render recovery, and a keyboard/touch resizable mobile panel. Rendering stays on
 demand, with sRGB color conversion, exposure 0.82 and resource disposal.
 
-Save to account and Review and order use dogehouse2’s existing parent flows.
+Save to account and Review my build use dogehouse2’s existing parent flows.
 Optional Browser backups retain the upstream IndexedDB library, automatic draft
 recovery, JSON import/export, and cross-tab conflict handling; these do not sync
 to Supabase or become customer orders. Nameplates and existing full design states
