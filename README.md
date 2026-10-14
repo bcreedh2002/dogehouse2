@@ -110,8 +110,9 @@ nameplate, schematic-preview, and add-on controls have been removed. Extra studi
 and placements are retained in browser-session drafts and Supabase saved builds.
 The Add-ons section includes storage drawer, swap panels, leg extensions, porch
 awning, weather liner, ramp, bowl holder, and door flap, each with a 3D model part.
-Their displayed prices are estimates pending maker confirmation. Designs saved
-before these fields existed load with all eight modules turned off.
+Enabled modules can be focused and highlighted from the option list. Their
+displayed prices are estimates pending maker confirmation. Designs saved before
+these fields existed load with all eight modules turned off.
 Older builds without studio data reset it to defaults. The studio price list sets the $349 base and option prices throughout review and
 downloads. viewer/pricing.js is the single shared source for those prices. Three.js loads locally. See viewer/README.md
 for source provenance. Run `NODE_PATH=/tmp/dogehouse-test-tools/node_modules node

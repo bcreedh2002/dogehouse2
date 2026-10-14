@@ -18,6 +18,7 @@ button.on{background:var(--ac);border-color:var(--ac);color:var(--ac-text)}
 .tot{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;justify-content:space-between;align-items:center;background:var(--f);border-radius:10px;padding:10px 12px;margin-bottom:8px}.tot b{font-size:22px}
 details{border:1px solid var(--bd);border-radius:10px;margin-bottom:7px}summary{padding:9px 12px;font-weight:600;cursor:pointer}.b{padding:2px 12px 12px}
 .l{display:block;font-size:12px;color:var(--mu);margin:8px 0 4px}.seg,.sws,.row{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.module-option{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 8px}.module-option>.chk{grid-column:1/-1;width:100%}.module-option>.l{grid-column:1;margin:0 0 8px 28px}.module-view{grid-column:2;grid-row:2;margin-bottom:8px;padding:3px 9px;min-height:32px;font-size:12px}.module-view[aria-pressed=true]{outline:2px solid var(--ac);outline-offset:1px}
 .sw{width:26px;height:26px;padding:0;border-radius:6px}.sw.on{outline:2px solid var(--ac);outline-offset:1px;background-clip:padding-box}
 input[type=color]{width:32px;height:28px;padding:0;border:1px solid var(--bd);border-radius:6px;background:none}
 .chk{display:flex;gap:7px;align-items:center;padding:4px 0}.chk i{margin-left:auto;color:var(--mu);font-style:normal}
@@ -98,7 +99,7 @@ const P=$('p'),sec=(h,b,o)=>`<details ${o?'open':''}><summary>${h}</summary><div
 const col=k=>`<div class="sws">${PAL.map(c=>`<button class="sw" data-k="${k}" data-v="${c}" aria-label="${k} color ${c}" style="background:${c}"></button>`).join('')}<input type="color" data-k="${k}" aria-label="Custom ${k} color"></div>`;
 const seg=(k,o)=>`<div class="seg">${o.map(([v,l])=>`<button data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
 const chk=(k,l,p)=>`<label class="chk"><input type="checkbox" data-k="${k}">${l}<i>+$${p}</i></label>`;
-const moduleOption=(k,l,p,d)=>`<div class="module-option">${chk(k,l,p)}<p class="l">${d}</p></div>`;
+const moduleOption=(k,l,p,d)=>`<div class="module-option">${chk(k,l,p)}<p class="l">${d}</p><button class="module-view" type="button" data-focus="${k}" aria-label="View ${l} in the model" aria-pressed="false" disabled>View</button></div>`;
 const WL=[['none','None'],['left','Left'],['right','Right'],['back','Back']];
 P.innerHTML=`<div class="tot"><div>Estimated total<br><b id="tot"></b></div><div class="row"><button id="save-shortcut" type="button">Save to account</button><button id="rs">Reset</button></div><div id="dirty-status" class="l" role="status" aria-live="polite"></div></div><div id="draft-recovery" role="region" aria-labelledby="draft-heading" hidden><strong id="draft-heading">An unsaved draft is available</strong><p id="draft-description" class="l"></p><div class="row"><button id="restore-draft" type="button">Restore draft</button><button id="discard-draft" type="button">Discard draft</button></div></div>`+
 sec('Nameplate',`<label class="l">Dog name</label><input type="text" data-k="nameplate" aria-label="Dog name" maxlength="14" value="DOGEHOUSE">`,1)+
@@ -478,7 +479,7 @@ function updateFitAdvice(){
  const fmt=value=>`${(unit==='cm'?value*2.54:value).toFixed(1)} ${unit}`;
  result.textContent=`Estimated opening: ${fmt(openingWidth)} wide at shoulder height, ${fmt(openingHeight)} high. ${heightPass&&widthPass?'Meets this rough 2 in (5.1 cm) clearance screen; confirm the fit against measured product dimensions.':'This entry may feel tight; try a larger doorway or confirm the fit against measured product dimensions.'}`;
 }
-function syncUI(){P.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k;if(el.type==='checkbox')el.checked=S[k];else if(el.type==='color'||el.type==='text')el.value=S[k];else{const active=String(S[k])===el.dataset.v;el.classList.toggle('on',active);el.setAttribute('aria-pressed',active)}});updateFitAdvice();
+function syncUI(){P.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k;if(el.type==='checkbox')el.checked=S[k];else if(el.type==='color'||el.type==='text')el.value=S[k];else{const active=String(S[k])===el.dataset.v;el.classList.toggle('on',active);el.setAttribute('aria-pressed',active)}});P.querySelectorAll('button[data-focus]').forEach(button=>{button.disabled=!S[button.dataset.focus];button.setAttribute('aria-pressed',String(focusedModule===button.dataset.focus))});updateFitAdvice();
  const it=items(),summaryKey=JSON.stringify(it);
  if(summaryKey!==lastSummary){lastSummary=summaryKey;$('sum').replaceChildren(...it.map(([label,price])=>{const row=document.createElement('div'),name=document.createElement('span'),cost=document.createElement('b');name.textContent=label;cost.textContent='$'+price;row.append(name,cost);return row}));$('tot').textContent='$'+it.reduce((a,x)=>a+x[1],0)}
  const list=$('gl'),focused=document.activeElement,focusKind=focused?.dataset.gi!==undefined?'gi':focused?.dataset.rm!==undefined?'rm':null,focusIndex=focusKind?+focused.dataset[focusKind]:-1;
@@ -511,8 +512,9 @@ function focusSaveDesign(){
  P.scrollTop+=input.getBoundingClientRect().top-P.getBoundingClientRect().top-clearance;
 }
 new ResizeObserver(()=>{P.style.scrollPaddingTop=(document.querySelector('.tot').getBoundingClientRect().height+16)+'px'}).observe(document.querySelector('.tot'));
-P.addEventListener('click',e=>{const b=e.target.closest('button[data-k]'),sc=e.target.closest('[data-sc]');
- if(e.target.closest('[data-design-id]')){$('saved-designs').value=e.target.closest('[data-design-id]').dataset.designId;updateCardSelection()}
+P.addEventListener('click',e=>{const b=e.target.closest('button[data-k]'),sc=e.target.closest('[data-sc]'),focus=e.target.closest('button[data-focus]');
+ if(focus)focusModule(focus.dataset.focus);
+ else if(e.target.closest('[data-design-id]')){$('saved-designs').value=e.target.closest('[data-design-id]').dataset.designId;updateCardSelection()}
  else if(b)set(b.dataset.k,b.dataset.v);else if(sc){const s=SCH[+sc.dataset.sc];S.body=s[1];S.roof=s[2];S.trim=s[3];updateColors();upd(false)}
  else if(e.target.dataset.rm!==undefined){end();S.gfx.splice(+e.target.dataset.rm,1);S.sel=-1;upd()}
  else if(e.target.closest('[data-gi]')){selectGraphic(+e.target.closest('[data-gi]').dataset.gi)}
@@ -550,13 +552,15 @@ ren.outputEncoding=T.sRGBEncoding;ren.toneMapping=T.NoToneMapping;
 ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;V.appendChild(ren.domElement);const dom=ren.domElement;
 const ctl=new T.OrbitControls(cam,dom);ctl.enableDamping=true;ctl.screenSpacePanning=true;ctl.minDistance=1;ctl.maxDistance=9;ctl.maxPolarAngle=Math.PI*.5;
 const VW=[[2.4,1.6,2.8],[0,.55,3.6],[3.6,.55,0],[0,.55,-3.6],[0,4.2,.01]];
-let renderFrame=0;
-function invalidate(){if(!renderFrame)renderFrame=requestAnimationFrame(()=>{renderFrame=0;if(ren.getContext().isContextLost())return;try{ctl.update();ren.render(scene,cam);window.doghouseBoot.ready()}catch(error){window.doghouseBoot.fail('The 3D preview could not render. Retry the viewer to restore your current design.')}})}
+let renderFrame=0,focusedModule=null,focusHelper=null,cameraTween=null,moduleTargets={};
+function invalidate(){if(!renderFrame)renderFrame=requestAnimationFrame(()=>{renderFrame=0;if(ren.getContext().isContextLost())return;try{if(cameraTween){const t=Math.min(1,(performance.now()-cameraTween.start)/cameraTween.duration),e=1-Math.pow(1-t,3);cam.position.lerpVectors(cameraTween.fromPosition,cameraTween.toPosition,e);ctl.target.lerpVectors(cameraTween.fromTarget,cameraTween.toTarget,e);if(t>=1)cameraTween=null;else invalidate()}ctl.update();ren.render(scene,cam);window.doghouseBoot.ready()}catch(error){window.doghouseBoot.fail('The 3D preview could not render. Retry the viewer to restore your current design.')}})}
+function clearFocus(){cameraTween=null;if(focusHelper){scene.remove(focusHelper);focusHelper.geometry.dispose();focusHelper.material.dispose();focusHelper=null}focusedModule=null;P.querySelectorAll('button[data-focus]').forEach(button=>button.setAttribute('aria-pressed','false'));invalidate()}
+function focusModule(key){const object=moduleTargets[key];if(!S[key]||!object)return;const box=new T.Box3().setFromObject(object);if(box.isEmpty())return;clearFocus();focusedModule=key;focusHelper=new T.Box3Helper(box,0xe0702b);scene.add(focusHelper);const center=box.getCenter(new T.Vector3()),size=box.getSize(new T.Vector3()),direction=new T.Vector3(.25,.22,1);if(['swapPanels','weatherLiner','bowlHolder'].includes(key))direction.set(1,.25,.15);else if(key==='legExtensions')direction.set(.55,.22,1);direction.normalize();const distance=Math.max(1.15,Math.min(2.8,size.length()*1.8));cameraTween={start:performance.now(),duration:420,fromPosition:cam.position.clone(),toPosition:center.clone().addScaledVector(direction,distance),fromTarget:ctl.target.clone(),toTarget:center};P.querySelectorAll('button[data-focus]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.focus===key)));invalidate()}
 ctl.addEventListener('change',invalidate);
 // Resources are restored by Three.js; demand rendering must schedule the first frame.
 dom.addEventListener('webglcontextrestored',invalidate);
 dom.addEventListener('webglcontextlost',()=>{end();window.doghouseBoot.lost()});
-const view=i=>{document.querySelectorAll("[data-vw]").forEach((b,j)=>{b.classList.toggle("on",j===i);b.setAttribute("aria-pressed",String(j===i))});cam.position.set(...VW[i]);ctl.target.set(0,.4,0);ctl.update();invalidate()};view(0);
+const view=i=>{clearFocus();document.querySelectorAll("[data-vw]").forEach((b,j)=>{b.classList.toggle("on",j===i);b.setAttribute("aria-pressed",String(j===i))});cam.position.set(...VW[i]);ctl.target.set(0,.4,0);ctl.update();invalidate()};view(0);
 document.querySelectorAll('[data-vw]').forEach(b=>b.onclick=()=>view(+b.dataset.vw));$('xr').onclick=()=>set('xray',!S.xray);
 scene.add(new T.HemisphereLight(linearColor('#ffffff'),linearColor('#8a8f9c'),.75));const dl=new T.DirectionalLight(0xffffff,.9);dl.position.set(3,5,4);dl.castShadow=true;dl.shadow.mapSize.set(1024,1024);
 // Offset shadow sampling from the surface to prevent self-shadow stripes at wall seams.
@@ -605,6 +609,7 @@ function updateColorTextures(){
 }
 /* ---------- build ---------- */
 function build(){
+ clearFocus();moduleTargets={};
  S.gfx.forEach(g=>clampG(g));
  if(graphicTextureFrame){cancelAnimationFrame(graphicTextureFrame);graphicTextureFrame=0}
  end();
@@ -612,7 +617,7 @@ function build(){
  const mesh=(g,m,x,y,z,p=house)=>{const o=new T.Mesh(g,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o};
  const ext=(sh,d=t)=>new T.ExtrudeGeometry(sh,{depth:d,bevelEnabled:false});
  const bm=M(S.body),tm=M(S.trim);colorMaterials.body=[bm];colorMaterials.trim=[tm];colorMaterials.ledColor=[];colorMaterials.swapPanelColor=[];const [r,s]={S:[.17,.3],M:[.21,.34],L:[.26,.36]}[S.door];
- [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([x,z])=>mesh(new T.BoxGeometry(.07,legRise,.07),tm,x*(W/2-.06),-legRise/2,z*(D/2-.06)).name=S.legExtensions?'leg-extension':'included-leg');
+ if(S.legExtensions){const legs=new T.Group();house.add(legs);moduleTargets.legExtensions=legs;[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([x,z])=>mesh(new T.BoxGeometry(.07,legRise,.07),tm,x*(W/2-.06),-legRise/2,z*(D/2-.06),legs).name='leg-extension')}else [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([x,z])=>mesh(new T.BoxGeometry(.07,legRise,.07),tm,x*(W/2-.06),-legRise/2,z*(D/2-.06)).name='included-leg');
  mesh(new T.BoxGeometry(W,Y0,D),M('#a9805a'),0,Y0/2,0);
  /* walls */
  const gable=S.roofShape==='gable';
@@ -622,16 +627,16 @@ function build(){
  const a=D/2-t,side=win=>{const p=new T.Shape();p.moveTo(-a,0);p.lineTo(a,0);p.lineTo(a,hAt(-a));p.lineTo(-a,hAt(a));p.closePath();
   if(win){const h=new T.Path();h.moveTo(-.15,.37);h.lineTo(.15,.37);h.lineTo(.15,.63);h.lineTo(-.15,.63);h.closePath();p.holes.push(h)}return p};
  mesh(ext(side(S.win)),bm,W/2-t,0,0).rotation.y=Math.PI/2;mesh(ext(side(false)),bm,-W/2,0,0).rotation.y=Math.PI/2;
- if(S.swapPanels){const pm=M(S.swapPanelColor);colorMaterials.swapPanelColor=[pm];const rightPanel=mesh(ext(side(S.win),.008),pm,W/2-t+.035,0,0);rightPanel.rotation.y=Math.PI/2;rightPanel.name='replacement-side-panel-right';const leftPanel=mesh(ext(side(false),.008),pm,-W/2-.008,0,0);leftPanel.rotation.y=Math.PI/2;leftPanel.name='replacement-side-panel-left'}
- if(S.weatherLiner){const lm=M('#9aa1b2',{roughness:1}),rightLiner=mesh(ext(side(S.win),.006),lm,W/2-t-.006,0,0),leftLiner=mesh(ext(side(false),.006),lm,-W/2+t,0,0);rightLiner.rotation.y=leftLiner.rotation.y=Math.PI/2;rightLiner.name='weather-liner-right';leftLiner.name='weather-liner-left'}
+ if(S.swapPanels){const pm=M(S.swapPanelColor),panels=new T.Group();house.add(panels);moduleTargets.swapPanels=panels;colorMaterials.swapPanelColor=[pm];const rightPanel=mesh(ext(side(S.win),.008),pm,W/2-t+.035,0,0,panels);rightPanel.rotation.y=Math.PI/2;rightPanel.name='replacement-side-panel-right';const leftPanel=mesh(ext(side(false),.008),pm,-W/2-.008,0,0,panels);leftPanel.rotation.y=Math.PI/2;leftPanel.name='replacement-side-panel-left'}
+ if(S.weatherLiner){const liners=new T.Group();house.add(liners);moduleTargets.weatherLiner=liners;const lm=M('#9aa1b2',{roughness:1}),rightLiner=mesh(ext(side(S.win),.006),lm,W/2-t-.006,0,0,liners),leftLiner=mesh(ext(side(false),.006),lm,-W/2+t,0,0,liners);rightLiner.rotation.y=leftLiner.rotation.y=Math.PI/2;rightLiner.name='weather-liner-right';leftLiner.name='weather-liner-left'}
  if(S.win){const g=mesh(new T.PlaneGeometry(.3,.26),M('#9fd4ff',{transparent:true,opacity:.3,roughness:.1}),W/2-t/2,.5,0);g.rotation.y=Math.PI/2;g.castShadow=false;
   if(S.awning){const aw=mesh(new T.BoxGeometry(.22,.014,.46),M('#fff',{map:K('aw'+S.awningColor,()=>awTex(S.awningColor))}),W/2+.1,gable?.64:.74,0);aw.name='window-awning';aw.rotation.z=-.45;colorMaterials.awning=aw.material}}
  /* trim */
  if(S.cornerTrim)[[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([x,z])=>{const h=gable?Hb:z>0?Hf:Hb;mesh(new T.BoxGeometry(.07,h,.07),tm,x*(W/2-.01),h/2,z*(D/2-.01))});
  if(S.doorTrim){const R=r+.045,u=new T.Shape();u.moveTo(-R,Y0);u.lineTo(-R,Y0+s);u.absarc(0,Y0+s,R,Math.PI,0,true);u.lineTo(R,Y0);u.lineTo(r,Y0);u.lineTo(r,Y0+s);u.absarc(0,Y0+s,r,0,Math.PI,false);u.lineTo(-r,Y0);u.closePath();mesh(ext(u,.025),tm,0,0,D/2)}
- if(S.storageDrawer){const drawer=M(S.trim);colorMaterials.trim.push(drawer);mesh(new T.BoxGeometry(.18,.105,.035),drawer,.36,Y0+.105,D/2+.018).name='storage-drawer';mesh(new T.BoxGeometry(.055,.012,.014),M('#3a3d44'),.36,Y0+.105,D/2+.044).name='drawer-handle'}
- if(S.porchAwning){const awningY=Y0+s+r+.09,porchMaterial=M(S.roof);colorMaterials.roof.push(porchMaterial);mesh(new T.BoxGeometry(2*r+.22,.035,.32),porchMaterial,0,awningY,D/2+.16).name='porch-awning';[-1,1].forEach(q=>mesh(new T.BoxGeometry(.025,Math.max(.04,awningY-(Y0+s)),.025),tm,q*(r+.08),(awningY+Y0+s)/2,D/2+.16).name='porch-awning-post')}
- if(S.doorFlap){const flapShape=new T.Shape();arch(flapShape,r*.96,s*.94,Y0+.012);mesh(ext(flapShape,.008),M('#7d8a99',{transparent:true,opacity:.58,roughness:.95}),0,0,D/2+t*.2).name='door-flap'}
+ if(S.storageDrawer){const drawerGroup=new T.Group();house.add(drawerGroup);moduleTargets.storageDrawer=drawerGroup;const drawer=M(S.trim);colorMaterials.trim.push(drawer);mesh(new T.BoxGeometry(.18,.105,.035),drawer,.36,Y0+.105,D/2+.018,drawerGroup).name='storage-drawer';mesh(new T.BoxGeometry(.055,.012,.014),M('#3a3d44'),.36,Y0+.105,D/2+.044,drawerGroup).name='drawer-handle'}
+ if(S.porchAwning){const porch=new T.Group();house.add(porch);moduleTargets.porchAwning=porch;const awningY=Y0+s+r+.09,porchMaterial=M(S.roof);colorMaterials.roof.push(porchMaterial);mesh(new T.BoxGeometry(2*r+.22,.035,.32),porchMaterial,0,awningY,D/2+.16,porch).name='porch-awning';[-1,1].forEach(q=>mesh(new T.BoxGeometry(.025,Math.max(.04,awningY-(Y0+s)),.025),tm,q*(r+.08),(awningY+Y0+s)/2,D/2+.16,porch).name='porch-awning-post')}
+ if(S.doorFlap){const flapShape=new T.Shape();arch(flapShape,r*.96,s*.94,Y0+.012);const flap=mesh(ext(flapShape,.008),M('#7d8a99',{transparent:true,opacity:.58,roughness:.95}),0,0,D/2+t*.2);flap.name='door-flap';moduleTargets.doorFlap=flap}
  /* roof */
  const ro=S.roofType==='shingle'?{map:K('sh',shTex)}:S.roofType==='metal'?{map:K('mt',mtTex),metalness:.55,roughness:.4}:{};if(S.xray)Object.assign(ro,{transparent:true,opacity:.2,depthWrite:false});
  const roofMaterial=M(S.roof,ro);colorMaterials.roof=[roofMaterial,...colorMaterials.roof];
@@ -651,8 +656,8 @@ function build(){
   if(ledMaterial){ledParent=group;ledPosition=[0,-.1,(length+.2)/2-.08];const zf=(length+.2)/2-.03,xs=(W+.2)/2-.03;mesh(new T.BoxGeometry(W+.14,.012,.012),ledMaterial,0,-.031,zf,group).name='roof-led';[-1,1].forEach(q=>mesh(new T.BoxGeometry(.012,.012,length+.14),ledMaterial,q*xs,-.031,0,group).name='roof-led')}
  }
  if(ledMaterial){const light=new T.PointLight(linearColor(S.ledColor),.7,1.6);light.position.set(...ledPosition);ledParent.add(light);ledLight=light}
- if(S.ramp){const rampRise=legRise+Y0,rampLength=.56,rampThickness=.025,rampAngle=Math.atan(rampRise/rampLength),rampMaterial=M(S.trim),ramp=new T.Mesh(new T.BoxGeometry(.52,rampThickness,rampLength),rampMaterial);colorMaterials.trim.push(rampMaterial);ramp.position.set(0,Y0-Math.sin(rampAngle)*rampLength/2-rampThickness*Math.cos(rampAngle)/2,D/2+rampLength/2-.02);ramp.rotation.x=rampAngle;ramp.castShadow=ramp.receiveShadow=true;ramp.name='entry-ramp';house.add(ramp)}
- if(S.bowlHolder){const holder=M('#3a3d44'),bowl=M('#7d8a99',{metalness:.25,roughness:.35}),inside=M('#3a3d44');mesh(new T.BoxGeometry(.24,.025,.34),holder,W/2+.1,.22,.38).name='bowl-holder-shelf';for(const z of [.28,.48]){mesh(new T.CylinderGeometry(.055,.065,.05,20),bowl,W/2+.1,.255,z).name='water-bowl';mesh(new T.CylinderGeometry(.046,.046,.006,20),inside,W/2+.1,.283,z)}}
+ if(S.ramp){const rampRise=legRise+Y0,rampLength=.56,rampThickness=.025,rampAngle=Math.atan(rampRise/rampLength),rampMaterial=M(S.trim),ramp=new T.Mesh(new T.BoxGeometry(.52,rampThickness,rampLength),rampMaterial);colorMaterials.trim.push(rampMaterial);ramp.position.set(0,Y0-Math.sin(rampAngle)*rampLength/2-rampThickness*Math.cos(rampAngle)/2,D/2+rampLength/2-.02);ramp.rotation.x=rampAngle;ramp.castShadow=ramp.receiveShadow=true;ramp.name='entry-ramp';house.add(ramp);moduleTargets.ramp=ramp}
+ if(S.bowlHolder){const bowls=new T.Group();house.add(bowls);moduleTargets.bowlHolder=bowls;const holder=M('#3a3d44'),bowl=M('#7d8a99',{metalness:.25,roughness:.35}),inside=M('#3a3d44');mesh(new T.BoxGeometry(.24,.025,.34),holder,W/2+.1,.22,.38,bowls).name='bowl-holder-shelf';for(const z of [.28,.48]){mesh(new T.CylinderGeometry(.055,.065,.05,20),bowl,W/2+.1,.255,z,bowls).name='water-bowl';mesh(new T.CylinderGeometry(.046,.046,.006,20),inside,W/2+.1,.283,z,bowls)}}
  /* floor */
  if(S.floor!=='none'){const c=S.floorColor,m=S.floor==='decal'?[new T.PlaneGeometry(.5,.5),M('#fff',{map:K('d'+c,()=>decTex(c)),transparent:true})]:S.floor==='rug'?[new T.CircleGeometry(.34,40),M('#fff',{map:K('r'+c,()=>rugTex(c)),transparent:true})]:[new T.PlaneGeometry(.9,1.08),M('#fff',{map:K('f'+c,()=>fabTex(c))})];
   const f=mesh(m[0],m[1],0,Y0+.003,0);f.rotation.x=-Math.PI/2;f.castShadow=false;colorMaterials.floor=f.material}
