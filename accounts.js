@@ -65,8 +65,8 @@
     const orders=mode.endsWith('orders'),team=mode.startsWith('customer');
     if(team){
       if(!isOwner)throw Error('Owner access required.');
-      result=await client.rpc(orders?'dogehouse_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize});
-    }else result=await client.from(orders?'dogehouse_orders':'dogehouse_builds').select(orders?'id,request_id,name,build,total_cents,status,email_status,email_attempts,created_at,approved_total_cents,payment_status':'id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
+      result=await client.rpc(orders?'dogehouse_managed_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize});
+    }else result=await client.from(orders?'dogehouse_orders':'dogehouse_builds').select(orders?'id,request_id,name,build,total_cents,status,fulfillment_status,updated_at,email_status,email_attempts,created_at,approved_total_cents,payment_status':'id,name,build,created_at').eq('user_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*pageSize,page*pageSize+pageSize-1);
     const {data,error}=result;if(error)throw error;
     if(!user||user.id!==owner||revision!==currentRevision||mode!==libraryMode||page!==libraryPage||recovering)return;
     $('designLibraryHeading').textContent={mine:'Saved builds',mine_orders:'Ordered builds',customers:'Customer saved builds',customer_orders:'Customer ordered builds'}[mode];
@@ -80,7 +80,7 @@
       const title=document.createElement('strong');title.textContent=row.name;
       const details=document.createElement('small');
       let estimate='';try{estimate=' · $'+(orders?row.total_cents/100:window.DogeHouseStudioPricing(window.DogeHouseBuild.decode(row.build).studio).total);}catch{}
-      details.textContent=new Date(row.created_at).toLocaleDateString()+estimate+(team?' · '+row.customer_email:'')+(orders?' · '+(row.status==='requested'?'Awaiting confirmation':row.status)+(row.email_status==='sent'?' · Email sent':' · Email pending'):'');
+      details.textContent=new Date(row.created_at).toLocaleDateString()+estimate+(team?' · '+row.customer_email:'')+(orders?' · '+({requested:'Awaiting confirmation',confirmed:'Confirmed',cancelled:'Cancelled'}[row.status]||row.status)+(row.fulfillment_status?' · '+({not_started:'Not started',in_production:'In production',ready:'Ready',completed:'Completed'}[row.fulfillment_status]||'Progress unavailable'):'')+(row.email_status==='sent'?' · Email sent':' · Email pending'):'');
       const load=document.createElement('button');load.type='button';load.textContent='Open in 3D';load.setAttribute('aria-label','Open '+row.name);
       load.addEventListener('click',()=>{
         if(!window.confirm('Replace your current design with this saved design? Save your current design first if you want to keep it.'))return;
@@ -236,6 +236,15 @@
   window.DogeHouseOwner={
     userId:()=>user?.id||null,
     isAuthorized:dashboardAllowed,
+    async manage(row,nextStatus,nextFulfillment){
+      const generation=authGeneration,identity=user?.id;
+      if(!client||!dashboardAllowed())throw Error('Owner access required.');
+      await checkOwner();if(!dashboardAllowed()||generation!==authGeneration||user?.id!==identity)throw Error('Your account changed. Sign in again.');
+      const {data,error}=await client.rpc('manage_dogehouse_order',{p_order_id:row.id,p_expected_version:row.status_version,p_status:nextStatus,p_fulfillment_status:nextFulfillment});
+      if(generation!==authGeneration||user?.id!==identity||!dashboardAllowed())throw Error('Your account changed. Refresh before making another update.');
+      if(error){const messages={P0001:'This order changed elsewhere. Refresh and try again.',P0002:'This order no longer exists. Refresh the dashboard.',42501:'Owner access required. Sign in again.'};throw Error(messages[error.code]||(error.code==='22023'?error.message:'Could not update the order. Refresh to check its status before retrying.'));}
+      return Array.isArray(data)?data[0]:data;
+    },
     async load(mode,page){
       const generation=authGeneration,identity=user?.id;
       if(!client||!dashboardAllowed())throw Error('Owner access required.');
@@ -243,7 +252,7 @@
       if(verified.error||verified.data.user?.id!==identity||verified.data.user?.email?.toLowerCase()!=='salesandinfo@thedogehouse.com'||generation!==authGeneration)throw Error('Please sign in again.');
       await checkOwner();if(!dashboardAllowed()||generation!==authGeneration)throw Error('Owner access required.');
       const results=await Promise.all([
-        client.rpc(mode==='orders'?'dogehouse_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize}),
+        client.rpc(mode==='orders'?'dogehouse_managed_customer_orders':'dogehouse_customer_designs',{p_offset:page*pageSize,p_limit:pageSize}),
         client.from('dogehouse_builds').select('id',{head:true,count:'exact'}),
         client.from('dogehouse_orders').select('id',{head:true,count:'exact'}),
         client.from('dogehouse_orders').select('id',{head:true,count:'exact'}).eq('status','requested'),
