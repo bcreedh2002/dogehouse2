@@ -19,3 +19,4 @@ jobs:
       - run: node tests/orders.cjs
       - run: node tests/payments.cjs
       - run: python3 tests/pages.py
+      - run: python3 tests/staging.py
