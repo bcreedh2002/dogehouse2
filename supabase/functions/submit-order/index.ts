@@ -1,10 +1,10 @@
+import {siteConfig} from '../_shared/site-config.ts';
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {createHandler,type Backend,type Order} from './handler.ts';
 const url=Deno.env.get('SUPABASE_URL')!,serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
 const key=Deno.env.get('RESEND_API_KEY')||'',from=Deno.env.get('ORDER_EMAIL_FROM')||'';
-const siteUrl=Deno.env.get('SITE_URL')||'https://bcreedh2002.github.io/dogehouse2/';
-const allowedOrigins=(Deno.env.get('ALLOWED_ORIGINS')||new URL(siteUrl).origin).split(',').map(value=>value.trim());
+const {siteUrl,allowedOrigins}=siteConfig(Deno.env.get('SITE_URL'),Deno.env.get('ALLOWED_ORIGINS'));
 function row(data:any,error:any):Order{if(error)throw error;const result=Array.isArray(data)?data[0]:data;if(!result?.id)throw Error('Order data unavailable.');return result;}
 const backend:Backend={
  emailReady:Boolean(key&&from),from,siteUrl,allowedOrigins,
