@@ -1,0 +1,21 @@
+name: Check ordering
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node tests/site-config.cjs
+      - run: node tests/orders.cjs
+      - run: node tests/payments.cjs
+      - run: python3 tests/pages.py
