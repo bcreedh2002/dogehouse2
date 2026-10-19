@@ -1,11 +1,11 @@
 # Isolated DogeHouse staging
 
-Status: setup code prepared and locally tested; hosted resources NOT created.
+Status (2026-10-19): DogeHouseTest1 (`jpncaudfzxqjzddyrkss`) exists and its database schema/hardening is applied. Hosted frontend, Edge secrets, authenticated signup and real Stripe/email checks remain pending.
 This branch depends on the explicit-origin fix in PR #15. Nothing here authorizes a production release.
 
 ## Isolation boundary
 
-Use one NEW Supabase project named `DogeHouse Staging`, one separate Netlify site, and a Stripe sandbox with its own test keys and webhook destination. Use synthetic builds/orders only. Do not clone customer/auth records or copy production secrets. Verify account/project identity before every administrative action. Check project cost/quota in the service UI before accepting paid resources; no paid provisioning is authorized by this guide.
+Use one NEW Supabase project named `DogeHouseTest1`, one separate Netlify site, and a Stripe sandbox with its own test keys and webhook destination. Use synthetic builds/orders only. Do not clone customer/auth records or copy production secrets. Verify account/project identity before every administrative action. Check project cost/quota in the service UI before accepting paid resources; no paid provisioning is authorized by this guide.
 
 The suggested Netlify name is `dogehouse-staging`; availability is not verified. Substitute the actual assigned origin everywhere below. A separate Netlify site keeps its stable test origin and build configuration independent from the existing production site. Its Netlify “production” deploy context means only this test site's primary branch, not DogeHouse production.
 
@@ -20,8 +20,9 @@ In the new project's SQL editor only, run these repository files in order:
 3. supabase/orders.sql
 4. supabase/order-management.sql
 5. supabase/payments.sql
+6. supabase/launch-hardening.sql
 
-These reproduce the current schema, including known payment visibility/confirmation/cancellation defects. They do not fix those defects. The full customer acceptance test must pass the follow-up corrections before a production release.
+The final hardening script corrects the dashboard contract and quote/cancellation rules. Do not rerun earlier scripts after hardening. The full customer acceptance test must pass the follow-up corrections before a production release.
 
 Create a NEW confirmed staging Auth user for salesandinfo@thedogehouse.com; the current application requires this exact owner identity. Use a distinct staging password. Add only that new project's user ID to dogehouse_owners after checking it in Auth Users. Never copy the production user's UUID. The safe lookup for a manually confirmed staging owner is:
 
@@ -37,7 +38,7 @@ Create two test customer accounts using inboxes/aliases you control and syntheti
 
 ## 2. Create the separate test frontend
 
-Create a NEW Netlify site attached to bcreedh2002/dogehouse2. Choose `setup/isolated-staging` as this site's branch. Keep the existing dogehouse.netlify.app site and its main branch untouched. Configure:
+Create a NEW Netlify site attached to bcreedh2002/dogehouse2. Choose `fix/vega-ordering-review` as this site's branch. Keep the existing dogehouse.netlify.app site and its main branch untouched. Configure:
 
 - Build command: python3 scripts/prepare-staging.py
 - Publish directory: _site

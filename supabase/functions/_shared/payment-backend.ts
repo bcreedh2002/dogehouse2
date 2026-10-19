@@ -21,7 +21,13 @@ export function paymentBackend():{backend:PaymentBackend;live:boolean}{
    // attempt instead of risking two chargeable sessions after an interrupted save.
    const {data:stored,error:readError}=await admin.from('dogehouse_payment_attempts').select('created_at').eq('id',attempt.id).single();
    if(readError||Date.now()-Date.parse(stored.created_at)>23*60*60*1000)throw Error('Payment attempt needs reconciliation');
+   const {data:order,error:orderError}=await admin.from('dogehouse_orders').select('user_id').eq('id',attempt.order_id).single();
+   if(orderError)throw orderError;
+   const {data:customer,error:customerError}=await admin.auth.admin.getUserById(order.user_id);
+   if(customerError||!customer.user?.email)throw Error('Customer email unavailable');
    const returnUrl=new URL(siteUrl);returnUrl.hash='orders';
+   const successUrl=new URL(returnUrl);successUrl.searchParams.set('checkout','success');
+   const cancelUrl=new URL(returnUrl);cancelUrl.searchParams.set('checkout','cancelled');
    const body=new URLSearchParams({
     mode:'payment','payment_method_types[0]':'card',
     'line_items[0][price_data][currency]':'usd','line_items[0][price_data][unit_amount]':String(attempt.amount_cents),
@@ -30,7 +36,7 @@ export function paymentBackend():{backend:PaymentBackend;live:boolean}{
     'metadata[dogehouse_attempt_id]':attempt.id,'metadata[dogehouse_order_id]':attempt.order_id,
     'payment_intent_data[metadata][dogehouse_attempt_id]':attempt.id,
     'payment_intent_data[metadata][dogehouse_order_id]':attempt.order_id,
-    success_url:returnUrl.href,cancel_url:returnUrl.href
+    customer_email:customer.user.email,success_url:successUrl.href,cancel_url:cancelUrl.href
    });
    const session=await stripe('checkout/sessions',body,'dogehouse-'+attempt.id);
    const {error}=await admin.from('dogehouse_payment_attempts').update({session_id:session.id}).eq('id',attempt.id).is('session_id',null);

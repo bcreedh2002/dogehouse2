@@ -1,0 +1,12 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{stripTypeScriptTypes}=require('node:module');
+(async()=>{const {siteConfig}=await import('../supabase/functions/_shared/site-config.ts');let body;
+const admin={auth:{admin:{getUserById:async()=>({data:{user:{email:'verified@example.com'}}})}},from:table=>({select:()=>({eq:()=>({single:async()=>({data:table==='dogehouse_orders'?{user_id:'server-user'}:{created_at:new Date().toISOString()}})})}),update:()=>({eq:()=>({is:async()=>({})})})})};
+const env={STRIPE_SECRET_KEY:'sk_test_synthetic',SITE_URL:'https://example.com/'};
+const code=stripTypeScriptTypes(fs.readFileSync('supabase/functions/_shared/payment-backend.ts','utf8').replace(/^import .*;\n/gm,'')).replace('export function paymentBackend','function paymentBackend')+'\nglobalThis.factory=paymentBackend;';
+const context={Deno:{env:{get:k=>env[k]}},createClient:()=>admin,siteConfig,URL,URLSearchParams,AbortSignal,Date,Error,fetch:async(url,options)=>{body=options.body;return new Response(JSON.stringify({id:'cs_test'}));}};
+vm.runInNewContext(code,context);await context.factory().backend.checkout({id:'attempt',order_id:'order',amount_cents:30000,session_id:null});
+assert.equal(body.get('customer_email'),'verified@example.com');assert.equal(body.get('line_items[0][price_data][unit_amount]'),'30000');
+assert.equal(new URL(body.get('success_url')).searchParams.get('checkout'),'success');assert.equal(new URL(body.get('cancel_url')).searchParams.get('checkout'),'cancelled');
+env.STRIPE_LIVE_MODE='true';assert.throws(()=>context.factory(),/mode must match/);
+console.log('PASS: actual Stripe backend uses verified account email, server total, distinct return URLs and matching test/live keys. Provider requests mocked.');
+})().catch(error=>{console.error(error);process.exitCode=1});

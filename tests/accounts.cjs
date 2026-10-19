@@ -3,9 +3,9 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse-launch.html';
 (async()=>{
- const browser=await chromium.launch({executablePath:process.env.DOGEHOUSE_CHROMIUM || '/usr/bin/chromium',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
+ const browser=await chromium.launch({executablePath:process.env.DOGEHOUSE_CHROMIUM || require('playwright').chromium.executablePath(),headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader']});
  try {
-  const page=await browser.newPage(), errors=[];page.on('pageerror',error=>errors.push(error.message));
+  const page=await browser.newPage(), errors=[];await require('./local-assets.cjs')(page);page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/account-config.js',route=>route.fulfill({contentType:'application/javascript',body:'window.DOGEHOUSE_ACCOUNT_CONFIG={supabaseUrl:"",supabasePublishableKey:""};'}));
   await page.goto(testUrl);
   await page.locator('#page-home .account-launch').click();
@@ -15,7 +15,7 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
   await page.locator('#page-home [data-page="customize"]').first().click();
   const studio=page.frameLocator('#studioFrame');await studio.locator('#v canvas').waitFor();await studio.locator('#viewer-status').waitFor({state:'hidden'});await studio.locator('input[data-k="nameplate"]').fill('BUDDY');await studio.locator('input[data-k="body"]').fill('#123456');
   await studio.locator('details').filter({has:studio.locator('[data-k="roofShape"]')}).locator('summary').click();await studio.locator('[data-k="roofShape"][data-v="gable"]').click();
-  const user={id:'11111111-1111-4111-8111-111111111111',email:'owner@example.com',aud:'authenticated',role:'authenticated',created_at:new Date().toISOString()};
+  const user={id:'11111111-1111-4111-8111-111111111111',email:'salesandinfo@thedogehouse.com',aud:'authenticated',role:'authenticated',created_at:new Date().toISOString()};
   const jwt=[{alg:'HS256',typ:'JWT'},{sub:user.id,exp:Math.floor(Date.now()/1000)+3600,iat:Math.floor(Date.now()/1000),aud:'authenticated',role:'authenticated'}].map(value=>Buffer.from(JSON.stringify(value)).toString('base64url')).join('.')+'.mock-signature';
   const session={access_token:jwt,refresh_token:'mock-refresh-token',expires_in:3600,token_type:'bearer',user};
   let trackingRequests=0;page.on('request',request=>{if(request.url().startsWith('https://tracking.invalid/'))trackingRequests++;});
@@ -36,8 +36,8 @@ const testUrl=process.env.DOGEHOUSE_TEST_URL || 'http://127.0.0.1:8000/dogehouse
    else if(url.pathname.endsWith('/submit-order')){
     const input=req.postDataJSON();assert.equal(req.headers().authorization,'Bearer '+jwt);assert.ok(input.build.preview.backLeft.startsWith('data:image/jpeg;base64,'));assert.ok(input.build.preview.frontRight.startsWith('data:image/jpeg;base64,'));orderCalls.push(input);
     if(failOrder){status=503;body={error:'Please retry the same request.'};}else{if(!orders.length)orders.push({id:'44444444-4444-4444-8444-444444444444',request_id:input.requestId,name:'BUDDY order',build:input.build,total_cents:34900,status:'requested',email_status:'sent',email_attempts:1,created_at:new Date().toISOString()});orders[0].email_status='sent';body={orderId:orders[0].id,emailStatus:'sent',status:'requested',totalCents:34900};}
-   }else if(url.pathname.endsWith('/approve_dogehouse_quote')){
-    assert.ok(ownerAccess);const input=req.postDataJSON();assert.equal(input.p_order_id,orders[0].id);assert.equal(input.p_amount_cents,42050);orders[0].approved_total_cents=input.p_amount_cents;orders[0].payment_status='unpaid';orders[0].status='confirmed';body=null;
+   }else if(url.pathname.endsWith('/owner-order')){
+    assert.ok(ownerAccess);const input=req.postDataJSON();assert.equal(input.orderId,orders[0].id);assert.equal(input.amountCents,42050);orders[0].approved_total_cents=input.amountCents;orders[0].payment_status='unpaid';orders[0].status='confirmed';body={approved:true,emailStatus:'sent'};
    }else if(url.pathname.endsWith('/pay-order')){
     assert.deepEqual(req.postDataJSON(),{orderId:orders[0].id});orders[0].payment_status='paid';body={paid:true};
    }else if(url.pathname.endsWith('/dogehouse_orders')){assert.equal(req.method(),'GET');assert.equal(url.searchParams.get('user_id'),`eq.${user.id}`);body=orders;}

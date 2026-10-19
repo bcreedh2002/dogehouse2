@@ -1,0 +1,15 @@
+[build]
+  command = "python3 scripts/prepare-pages.py"
+  publish = "_site"
+
+[context.deploy-preview]
+  command = "python3 scripts/prepare-staging.py"
+[context.branch-deploy]
+  command = "python3 scripts/prepare-staging.py"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"

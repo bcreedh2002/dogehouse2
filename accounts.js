@@ -102,8 +102,8 @@
             const [whole,fraction='']=value.split('.'),cents=Number(whole)*100+Number(fraction.padEnd(2,'0'));
             if(cents<50||cents>10000000)throw Error('The final total must be between $0.50 and $100,000.');
             if(!window.confirm('Approve '+money(cents)+' as the final total, including shipping and tax? This quote cannot be changed.'))return;
-            const {error}=await client.rpc('approve_dogehouse_quote',{p_order_id:row.id,p_amount_cents:cents});if(error)throw error;
-            await refreshBuilds();status('Quote approved. The customer can now pay from Ordered builds.');
+            const result=await window.DogeHouseOwner.approve(row,cents);
+            await refreshBuilds();status(result.emailStatus==='sent'?'Quote approved and emailed to the customer.':'Quote approved. Customer email needs attention; retry from the owner dashboard.');
           });});item.append(form);
         }
         if(mode==='mine_orders'&&row.status==='confirmed'&&row.approved_total_cents!=null&&row.payment_status==='unpaid'){
@@ -138,7 +138,7 @@
     if(!client){showUser(null);status('Account saving is coming soon. You can still customize your house and download your build details.');return;}
     if(recovering){showUser(user);return;}
     status('Loading your account…');
-    operation(async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;showUser(data.session?.user||null);if(user){await checkOwner();if(location.hash==='#orders')libraryMode=isOwner?'customer_orders':'mine_orders';await refreshBuilds();}status('');});
+    operation(async()=>{const {data,error}=await client.auth.getSession();if(error)throw error;showUser(data.session?.user||null);if(user){await checkOwner();if(location.hash==='#orders')libraryMode=isOwner?'customer_orders':'mine_orders';await refreshBuilds();}const checkout=new URL(location.href).searchParams.get('checkout');status(checkout==='success'?'Checkout finished. Check Ordered builds for the verified payment status.':checkout==='cancelled'?'Checkout was cancelled. Your order is saved and can be paid later.':'');});
   }
   document.querySelectorAll('.site-header').forEach(header => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'account-launch'; button.textContent = 'Sign in / Save builds'; button.setAttribute('aria-haspopup', 'dialog');
@@ -236,10 +236,20 @@
   window.DogeHouseOwner={
     userId:()=>user?.id||null,
     isAuthorized:dashboardAllowed,
+    async approve(row,amountCents){return this.action({action:'approve',orderId:row.id,amountCents});},
+    async action(body){
+      if(!client||!dashboardAllowed())throw Error('Owner access required.');
+      const generation=authGeneration,identity=user?.id;
+      const {data,error}=await client.functions.invoke('owner-order',{body});
+      if(generation!==authGeneration||identity!==user?.id||!dashboardAllowed())throw Error('Your account changed. Refresh before retrying.');
+      if(error){let message='Could not update order. Refresh before retrying.';try{const payload=await error.context.json();if(payload.error)message=payload.error;}catch{}throw Error(message);}
+      return data;
+    },
     async manage(row,nextStatus,nextFulfillment){
       const generation=authGeneration,identity=user?.id;
       if(!client||!dashboardAllowed())throw Error('Owner access required.');
       await checkOwner();if(!dashboardAllowed()||generation!==authGeneration||user?.id!==identity)throw Error('Your account changed. Sign in again.');
+      if(nextStatus==='cancelled')return this.action({action:'cancel',orderId:row.id,version:row.status_version,fulfillment:nextFulfillment});
       const {data,error}=await client.rpc('manage_dogehouse_order',{p_order_id:row.id,p_expected_version:row.status_version,p_status:nextStatus,p_fulfillment_status:nextFulfillment});
       if(generation!==authGeneration||user?.id!==identity||!dashboardAllowed())throw Error('Your account changed. Refresh before making another update.');
       if(error){const messages={P0001:'This order changed elsewhere. Refresh and try again.',P0002:'This order no longer exists. Refresh the dashboard.',42501:'Owner access required. Sign in again.'};throw Error(messages[error.code]||(error.code==='22023'?error.message:'Could not update the order. Refresh to check its status before retrying.'));}

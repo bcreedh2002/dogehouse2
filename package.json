@@ -1,0 +1,12 @@
+{
+  "name": "dogehouse-checks",
+  "private": true,
+  "scripts": {
+    "test": "node scripts/test.cjs",
+    "test:browser": "node tests/accounts.cjs && node tests/owner-dashboard.cjs && node tests/mobile-review.cjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "playwright": "1.56.1"
+  }
+}

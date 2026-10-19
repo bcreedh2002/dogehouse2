@@ -15,8 +15,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: node tests/site-config.cjs
-      - run: node tests/orders.cjs
-      - run: node tests/payments.cjs
-      - run: python3 tests/pages.py
-      - run: python3 tests/staging.py
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
