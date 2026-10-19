@@ -1,11 +1,11 @@
 [build]
-  command = "python3 scripts/prepare-pages.py"
+  command = "python3 scripts/prepare-netlify.py"
   publish = "_site"
 
 [context.deploy-preview]
-  command = "python3 scripts/prepare-staging.py"
+  command = "python3 scripts/prepare-netlify.py"
 [context.branch-deploy]
-  command = "python3 scripts/prepare-staging.py"
+  command = "python3 scripts/prepare-netlify.py"
 
 [[headers]]
   for = "/*"

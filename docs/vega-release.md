@@ -26,7 +26,7 @@ Security advisors report informational deny-all/no-policy notices on internal ow
 
 ## Finish staging
 
-1. Attach a separate Netlify site to this branch, command `python3 scripts/prepare-staging.py`, publish `_site`, with explicit STAGING_SUPABASE_URL/STAGING_SUPABASE_PUBLISHABLE_KEY/STAGING_SITE_URL. The separate site's production-context command must explicitly remain the staging command.
+1. Attach a separate Netlify site to this branch, command `python3 scripts/prepare-netlify.py`, DOGEHOUSE_ENV=staging, publish `_site`, with explicit STAGING_SUPABASE_URL/STAGING_SUPABASE_PUBLISHABLE_KEY/STAGING_SITE_URL. The dispatcher handles the separate site's production context through DOGEHOUSE_ENV=staging; do not rely on a UI build override. Set DOGEHOUSE_ENV=production only on the canonical live site.
 2. In DogeHouseTest1, configure Auth site/redirect URLs and SMTP. Create/confirm the owner account and two customer accounts using controlled inboxes. Reapply only the owner-membership INSERT from owner-access.sql after confirmation.
 3. Configure staging-only SITE_URL, ALLOWED_ORIGINS, RESEND_API_KEY, ORDER_EMAIL_FROM, STRIPE_SECRET_KEY (`sk_test_...`), STRIPE_WEBHOOK_SECRET and STRIPE_LIVE_MODE=false. Do not paste secrets into PRs/chat. Supabase secrets management isn't exposed by the connected MCP tools.
 4. Deploy submit-order, owner-order, pay-order and stripe-webhook to the staging reference, preserving config.toml's explicit handler authentication settings. Register sandbox checkout.session.completed, checkout.session.expired and charge.refunded events.

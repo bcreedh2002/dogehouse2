@@ -40,7 +40,8 @@ Create two test customer accounts using inboxes/aliases you control and syntheti
 
 Create a NEW Netlify site attached to bcreedh2002/dogehouse2. Choose `fix/vega-ordering-review` as this site's branch. Keep the existing dogehouse.netlify.app site and its main branch untouched. Configure:
 
-- Build command: python3 scripts/prepare-staging.py
+- Build command: python3 scripts/prepare-netlify.py
+- DOGEHOUSE_ENV: staging (required even for this separate site's production deploy context)
 - Publish directory: _site
 - Builds environment variables on THIS NEW SITE:
   - STAGING_SUPABASE_URL = the new project's https://REF.supabase.co URL

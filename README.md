@@ -9,13 +9,13 @@ Order requests use a small Supabase Edge Function; there is no self-hosted serve
 
 ## Hosting and launch setup
 
-Canonical public site: https://dogehouse.netlify.app/. GitHub holds source and pull requests; Netlify builds `python3 scripts/prepare-pages.py` and publishes `_site`. `netlify.toml` defines the build and security headers. The legacy Pages workflow no longer publishes. Unpublish the existing GitHub Pages site separately in repository Settings > Pages.
+Canonical public site: https://dogehouse.netlify.app/. GitHub holds source and pull requests; Netlify builds `python3 scripts/prepare-netlify.py` and publishes `_site`. `netlify.toml` defines the build and security headers. The legacy Pages workflow no longer publishes. Unpublish the existing GitHub Pages site separately in repository Settings > Pages.
 
 Follow [the release checklist](docs/vega-release.md) and [isolated staging guide](docs/staging-setup.md). For a fresh database run `schema.sql`, `owner-access.sql`, `orders.sql`, `order-management.sql`, `payments.sql`, then `launch-hardening.sql`, in that order. For an existing deployment with the first five already applied, apply only `launch-hardening.sql`; do not rerun older scripts after it.
 
 Set public `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` on the production Netlify site (the public committed configuration is a fallback). Private keys belong only in Supabase Edge secrets. Never put a secret/service-role key in a frontend variable. Configure Supabase Auth Site URL as `https://dogehouse.netlify.app/`, with root and `/dogehouse-launch.html` redirects. Keep email confirmation enabled, configure SMTP, and verify signup/recovery delivery with two accounts.
 
-Preview/branch builds require isolated `STAGING_*` variables and use `prepare-staging.py`; they must never share the production database. On the separate staging Netlify site, explicitly set its production-context build command to `python3 scripts/prepare-staging.py` so it cannot use the committed production account settings.
+Preview/branch builds require isolated `STAGING_*` variables and use `prepare-staging.py`; they must never share the production database. Set `DOGEHOUSE_ENV=staging` on the separate staging site and `DOGEHOUSE_ENV=production` on the canonical production site. The checked-in dispatcher rejects missing/unknown modes and rejects a production build on another Netlify origin or Supabase reference. Preview contexts always use isolated staging settings; the Netlify configuration file takes precedence over UI build commands.
 
 ## Local development
 
