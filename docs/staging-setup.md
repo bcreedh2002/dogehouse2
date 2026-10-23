@@ -81,10 +81,11 @@ https://STAGING_PROJECT_REF.supabase.co/functions/v1/stripe-webhook
 
 Subscribe to checkout.session.completed, checkout.session.expired, charge.refunded using snapshot events and API version 2024-06-20 as used by the adapter. Set its signing secret in the NEW Supabase project. Stripe dashboard capabilities/API-version choices should be verified at setup time.
 
-Deploy submit-order, pay-order and stripe-webhook only to that NEW project. If using the CLI, supply its actual `--project-ref` explicitly on each command and check it is not the production ref above. Do not use the repository's existing deploy-order/deploy-payments workflows: they hardcode the PRODUCTION project. Do not run `supabase db push` against an existing linked project.
+Deploy submit-order, owner-order, pay-order and stripe-webhook only to that NEW project. If using the CLI, supply its actual `--project-ref` explicitly on each command and check it is not the production ref above. Do not use the repository's existing deploy-order/deploy-payments workflows: the October 23 branch revision requires an explicit matching DogeHouseTest1 reference; older revisions hardcode production. Review the checked-out workflow before any dispatch. Do not run `supabase db push` against an existing linked project.
 
 ```sh
 supabase functions deploy submit-order --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
+supabase functions deploy owner-order --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
 supabase functions deploy pay-order --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
 supabase functions deploy stripe-webhook --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
 ```

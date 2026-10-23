@@ -1,5 +1,6 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.117.3';
 import {siteConfig} from '../_shared/site-config.ts';
+import {paymentBackend} from '../_shared/payment-backend.ts';
 import {limitedBody} from '../_shared/payments.ts';
 const {siteUrl,allowedOrigins}=siteConfig(Deno.env.get('SITE_URL'),Deno.env.get('ALLOWED_ORIGINS'));
 const url=Deno.env.get('SUPABASE_URL')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -22,20 +23,16 @@ Deno.serve(async request=>{
   let body;try{body=JSON.parse(await limitedBody(request,4096));}catch{return reply({error:'Invalid request'},400);}
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.orderId||''))return reply({error:'Invalid order'},400);
   if(body.action==='cancel'){
+   if(!Number.isSafeInteger(body.version)||!['not_started','in_production','ready','completed'].includes(body.fulfillment))return reply({error:'Invalid cancellation'},400);
+   const {data:allowed,error:fenceError}=await caller.rpc('begin_dogehouse_cancellation',{p_order_id:body.orderId,p_expected_version:body.version});
+   if(fenceError)return reply({error:fenceError.message},409);
+   if(allowed!==true)return reply({error:'Payment already recorded. Refund before cancelling.'},409);
    const {data:attempts,error}=await admin.from('dogehouse_payment_attempts').select('*').eq('order_id',body.orderId).eq('status','pending');if(error)throw error;
-   const key=Deno.env.get('STRIPE_SECRET_KEY')||'',live=Deno.env.get('STRIPE_LIVE_MODE')==='true';
-   if(attempts.length&&!key.startsWith(live?'sk_live_':'sk_test_'))throw Error('Stripe mode mismatch');
-   for(const attempt of attempts){
-    // Missing sessions may represent interrupted creation; do not cancel blindly.
-    if(!attempt.session_id)return reply({error:'Checkout needs reconciliation before cancellation.'},409);
-    const response=await fetch('https://api.stripe.com/v1/checkout/sessions/'+encodeURIComponent(attempt.session_id)+'/expire',{method:'POST',headers:{Authorization:'Bearer '+key,'Stripe-Version':'2024-06-20'},signal:AbortSignal.timeout(20000)});
-    let session=await response.json();
-    if(!response.ok){
-     const lookup=await fetch('https://api.stripe.com/v1/checkout/sessions/'+encodeURIComponent(attempt.session_id),{headers:{Authorization:'Bearer '+key,'Stripe-Version':'2024-06-20'},signal:AbortSignal.timeout(20000)});
-     if(!lookup.ok)throw Error('Checkout lookup failed');session=await lookup.json();
+   if(attempts.length){
+    const {backend}=paymentBackend();
+    for(const attempt of attempts){
+     if(!await backend.expire(attempt))return reply({error:'Payment recorded. Refresh the order; refund before cancelling.'},409);
     }
-    if(session.status!=='expired'||session.payment_status==='paid')return reply({error:'Checkout completed or is still active. Refresh payment status before cancelling.'},409);
-    const recorded=await admin.rpc('record_dogehouse_payment',{p_attempt_id:attempt.id,p_session_id:session.id,p_amount_cents:session.amount_total,p_paid:false,p_intent_id:null});if(recorded.error)throw recorded.error;
    }
    const {error:cancelError}=await caller.rpc('manage_dogehouse_order',{p_order_id:body.orderId,p_expected_version:body.version,p_status:'cancelled',p_fulfillment_status:body.fulfillment});
    if(cancelError)return reply({error:cancelError.message},409);return reply({cancelled:true});

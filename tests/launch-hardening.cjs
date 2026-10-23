@@ -6,6 +6,7 @@ create table auth.users(id uuid primary key,email text,email_confirmed_at timest
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 insert into auth.users values('${owner}','salesandinfo@thedogehouse.com',now()),('${alice}','alice@example.com',now()),('${bob}','bob@example.com',now()),('${other}','other@example.com',now());`);
 for(const file of ['schema.sql','owner-access.sql','orders.sql','order-management.sql','payments.sql','launch-hardening.sql','launch-hardening.sql'])await db.exec(fs.readFileSync('supabase/'+file,'utf8'));
+await assert.rejects(()=>db.exec(fs.readFileSync('supabase/payments.sql','utf8')),/bootstrap cannot run after/);await db.exec('rollback');
 await db.query('insert into dogehouse_owners values($1)',[other]);
 async function as(role,id,fn){await db.exec(`set role ${role};set request.jwt.claim.sub='${id||''}'`);try{return await fn()}finally{await db.exec('reset role;reset request.jwt.claim.sub')}}
 const create=async()=> (await db.query("insert into dogehouse_orders(user_id,request_id,name,build,total_cents) values($1,gen_random_uuid(),'test','{}',30000) returning id",[alice])).rows[0].id;
@@ -18,7 +19,7 @@ await as('authenticated',owner,async()=>{
  assert.equal(row.approved_total_cents,30000);assert.equal(row.payment_status,'unpaid');assert.equal(row.quote_email_status,'queued');assert.equal(row.status_version,1);
  await assert.rejects(()=>manage(id,0,'cancelled'),e=>e.code==='P0001');
 });
-await as('authenticated',other,()=>assert.rejects(()=>db.query('select approve_dogehouse_quote($1,30000)',[cancel]),e=>e.code==='42501'));
+await as('authenticated',other,async()=>{await assert.rejects(()=>db.query('select approve_dogehouse_quote($1,30000)',[cancel]),e=>e.code==='42501');assert.equal((await db.query('select * from dogehouse_managed_customer_orders()')).rows.length,2,'Existing owner membership grants broad read access; mutation identity remains stricter');});
 let attempt;
 await as('service_role',null,async()=>{attempt=(await db.query('select * from reserve_dogehouse_payment($1,$2)',[id,alice])).rows[0];});
 await as('authenticated',owner,()=>assert.rejects(()=>manage(id,1,'cancelled'),e=>e.code==='22023'));

@@ -37,5 +37,26 @@ do $$ begin
  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub','e1111111-1111-4111-8111-111111111111',true);
+-- Database-only reproduction. These synthetic provider IDs are NOT Stripe events
+-- and do not satisfy CASE 9 or any hosted Checkout acceptance case.
+do $$ declare a public.dogehouse_payment_attempts; o public.dogehouse_orders; begin
+ select * into a from public.dogehouse_payment_attempts where order_id='e4444444-4444-4444-8444-444444444444' and status='pending';
+ if not public.begin_dogehouse_cancellation(a.order_id,1) then raise exception 'FAIL: cancellation fence'; end if;
+ begin
+  perform public.reserve_dogehouse_payment(a.order_id,'e2222222-2222-4222-8222-222222222222');
+  raise exception 'FAIL: fence permitted a new checkout';
+ exception when others then if sqlerrm='FAIL: fence permitted a new checkout' then raise; end if; end;
+ perform public.record_dogehouse_payment(a.id,'cs_synthetic_regression',30000,false,null);
+ perform public.manage_dogehouse_order(a.order_id,1,'cancelled','not_started');
+ perform public.record_dogehouse_payment(a.id,'cs_synthetic_regression',30000,true,'pi_synthetic_regression');
+ perform public.record_dogehouse_payment(a.id,'cs_synthetic_regression',30000,true,'pi_synthetic_regression');
+ perform public.record_dogehouse_payment(a.id,'cs_synthetic_regression',30000,false,null);
+ select * into o from public.dogehouse_orders where id=a.order_id;
+ if o.status<>'confirmed' or o.payment_status<>'paid' or not o.payment_review_required or o.status_version<>3 then raise exception 'FAIL: late capture reconciliation/replay'; end if;
+ perform public.record_dogehouse_refund('pi_synthetic_regression',30000);
+ perform public.record_dogehouse_refund('pi_synthetic_regression',1000);
+ if (select payment_status from public.dogehouse_orders where id=a.order_id)<>'refunded' then raise exception 'FAIL: refund monotonicity'; end if;
+end $$;
 rollback;
-select 'PASS: hosted SQL dashboard contract, quote-only confirmation, pending checkout cancellation denial, cross-account isolation and non-owner denial; all synthetic records rolled back' as result;
+select 'PASS: hosted SQL ONLY: dashboard, quote guard, cancellation fence, expiry/cancel/late-capture, replay/refunds, isolation and non-owner denial; rolled back. NOT Stripe acceptance or CASE 9' as result;

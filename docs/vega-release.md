@@ -1,5 +1,7 @@
 # Vega review implementation and release checklist
 
+> October 23 update: the October 22 late-payment defect was reproduced and fixed locally. See [verification and acceptance ledger](vega-review-2026-10-22.md). Candidate staging migration is blocked by a connector error; CASE 9 has not run. Earlier staging checks below describe the prior commit, not launch approval.
+
 ## Review scope
 
 Prepared 2026-10-19 on `fix/vega-ordering-review`, based on staging PR #16 and origin fix PR #15. No main-branch merge or production deployment has occurred. Draft planner export PR #14 remains separate.
