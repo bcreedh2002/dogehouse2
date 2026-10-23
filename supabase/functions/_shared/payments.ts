@@ -3,7 +3,8 @@ export type PaymentBackend={
  siteUrl:string;allowedOrigins:string[];
  authenticate(token:string):Promise<string|null>;
  reserve(orderId:string,userId:string):Promise<Attempt>;
- checkout(attempt:Attempt):Promise<{id:string;url:string|null;status:string;payment_status:string;amount_total:number;currency:string;payment_intent:string|null}>;
+ checkout(attempt:Attempt):Promise<{id:string;url:string|null;status:string;payment_status:string;amount_total:number;currency:string;payment_intent:string|null;reconciled_without_session?:boolean}>;
+ expire(attempt:Attempt):Promise<boolean>;
  record(attemptId:string,sessionId:string,amount:number,paid:boolean,intent:string|null):Promise<void>;
  refund(intent:string,amount:number):Promise<void>;
 };
@@ -31,16 +32,20 @@ export function payHandler(backend:PaymentBackend){
    let attempt;try{attempt=await backend.reserve(body.orderId,userId);}catch{return reply({error:'This order is not ready for payment.'},409);}
    const session=await backend.checkout(attempt);
    if(session.amount_total!==attempt.amount_cents||session.currency!=='usd')throw Error('Checkout mismatch');
-   if(session.status==='expired'){
-    await backend.record(attempt.id,session.id,attempt.amount_cents,false,null);
-    return reply({error:'This checkout expired. Click Pay again for a new checkout.'},409);
-   }
    // A provider lookup may reconcile payment, but a browser redirect never does.
    if(session.payment_status==='paid'){
     await backend.record(attempt.id,session.id,attempt.amount_cents,true,session.payment_intent);
     return reply({paid:true});
    }
+   if(session.status==='expired'){
+    if(session.reconciled_without_session)return reply({error:'Interrupted checkout reconciled. Click Pay again for a new checkout.'},409);
+    await backend.record(attempt.id,session.id,attempt.amount_cents,false,null);
+    return reply({error:'This checkout expired. Click Pay again for a new checkout.'},409);
+   }
    if(session.status!=='open'||!session.url||new URL(session.url).origin!=='https://checkout.stripe.com')throw Error('Checkout unavailable');
+   // Cancellation/capture may have won while Stripe was creating the session.
+   try{if((await backend.reserve(body.orderId,userId)).id!==attempt.id)throw Error('Attempt changed');}
+   catch{return reply({error:'Order changed. Refresh payment status before retrying.'},409);}
    return reply({url:session.url});
   }catch{return reply({error:'Payment service unavailable. Please retry; your order is saved.'},503);}
  };
@@ -71,11 +76,8 @@ export function webhookHandler(backend:PaymentBackend,secret:string,live:boolean
     if(event.type==='checkout.session.completed'&&object.payment_status!=='paid')return new Response('Unpaid checkout',{status:400});
     await backend.record(object.metadata.dogehouse_attempt_id,object.id,object.amount_total,event.type==='checkout.session.completed',typeof object.payment_intent==='string'?object.payment_intent:null);
    }else if(event.type==='charge.refunded'){
-    // Ignore unrelated Stripe purchases; this metadata is set on our PaymentIntent.
-    if(object?.metadata?.dogehouse_attempt_id){
      if(object.currency!=='usd'||typeof object.payment_intent!=='string'||!Number.isSafeInteger(object.amount_refunded))return new Response('Invalid refund',{status:400});
      await backend.refund(object.payment_intent,object.amount_refunded);
-    }
    }
    return new Response('ok');
   }catch{return new Response('Payment update pending; retry delivery',{status:500});}

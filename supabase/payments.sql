@@ -1,5 +1,11 @@
 -- Run after orders.sql. Amounts are USD cents and include shipping and tax.
 begin;
+-- This bootstrap predates the hardened RPCs. Fail before replacing any of them.
+do $$ begin
+ if exists(select 1 from information_schema.columns where table_schema='public' and table_name='dogehouse_orders' and column_name='payment_review_required') then
+  raise exception 'payments.sql bootstrap cannot run after launch-hardening.sql; apply launch-hardening.sql instead';
+ end if;
+end $$;
 alter table public.dogehouse_orders add column if not exists approved_total_cents integer check(approved_total_cents between 50 and 10000000);
 alter table public.dogehouse_orders add column if not exists payment_status text not null default 'unpaid' check(payment_status in ('unpaid','paid','partially_refunded','refunded'));
 create table if not exists public.dogehouse_payment_attempts(

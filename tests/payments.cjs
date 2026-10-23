@@ -36,6 +36,14 @@ const {createHmac}=require('node:crypto');
  assert.equal((await deliver({...event,type:'checkout.session.expired'})).status,200);assert.deepEqual(records.pop(),[attempt,'cs_test_1',42000,false,'pi_test_1']);
  assert.equal((await deliver({livemode:false,type:'charge.refunded',data:{object:{currency:'usd',payment_intent:'pi_test_1',amount_refunded:10000,metadata:{dogehouse_attempt_id:attempt}}}})).status,200);
  assert.deepEqual(refunds, [['pi_test_1',10000]]);
+ const noMetadata={livemode:false,type:'charge.refunded',data:{object:{currency:'usd',payment_intent:'pi_test_1',amount_refunded:30000}}};
+ assert.equal((await deliver(noMetadata)).status,200);assert.deepEqual(refunds.at(-1),['pi_test_1',30000]);
+ backend.refund=async()=>{throw Error('Payment not yet recorded')};assert.equal((await deliver(noMetadata)).status,500);
+ // Paid evidence takes precedence even when a stale status says expired.
+ session={...session,status:'expired',payment_status:'paid'};assert.equal((await (await pay(request())).json()).paid,true);
+ let count=0;backend.reserve=async()=>{if(++count>1)throw Error('Cancelled');return {id:attempt,amount_cents:42000};};
+ session={...session,status:'open',payment_status:'unpaid'};assert.equal((await pay(request())).status,409,'cancellation during checkout creation cannot return a payable URL');
+
  backend.record=async()=>{throw Error('Database unavailable')};assert.equal((await deliver(event)).status,500,'Stripe must retry failed persistence');
  console.log('PASS: checkout authorization/origin/body limits, server amount, provider URL, expiry and paid reconciliation; signed raw-body webhook, timestamp/mode checks, refunds and retryable persistence. No Stripe requests or charges.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

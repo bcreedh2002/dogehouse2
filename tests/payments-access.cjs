@@ -5,7 +5,7 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('node:fs'),assert=requ
  create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  insert into auth.users values('${owner}','salesandinfo@thedogehouse.com',now()),('${alice}','alice@example.com',now()),('${bob}','bob@example.com',now());`);
- for(const file of ['schema.sql','owner-access.sql','orders.sql','payments.sql','payments.sql'])await db.exec(fs.readFileSync('supabase/'+file,'utf8'));
+ for(const file of ['schema.sql','owner-access.sql','orders.sql','order-management.sql','payments.sql','payments.sql','launch-hardening.sql','launch-hardening.sql'])await db.exec(fs.readFileSync('supabase/'+file,'utf8'));
  async function as(role,uid,work){await db.exec(`set role ${role};set request.jwt.claim.sub='${uid||''}'`);try{return await work()}finally{await db.exec('reset role;reset request.jwt.claim.sub');}}
  const order=(await db.query('select * from create_dogehouse_order($1,$2,$3,$4,$5)',[alice,bob,'Buddy','{}',34900])).rows[0].id;
  const approve=amount=>db.query('select approve_dogehouse_quote($1,$2)',[order,amount]);
@@ -28,14 +28,14 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('node:fs'),assert=requ
   assert.equal((await reserve(alice)).rows[0].id,attempt.id,'Duplicate checkout requests share one attempt');
   await assert.rejects(()=>record(attempt.id,'cs_1',1,true,'pi_1'));
   await record(attempt.id,'cs_1',42000,false,null);
-  await assert.rejects(()=>record(attempt.id,'cs_1',42000,true,'pi_1'),'Expired attempts cannot later charge');
+  // A verified provider expiry permits renewal; late capture is exercised in payment-race.cjs.
   const next=(await reserve(alice)).rows[0];assert.notEqual(next.id,attempt.id);
   await db.query('update dogehouse_payment_attempts set session_id=$1 where id=$2',['cs_2',next.id]);
   await assert.rejects(()=>record(next.id,'cs_spoof',42000,true,'pi_2'));
   await record(next.id,'cs_2',42000,true,'pi_2');await record(next.id,'cs_2',42000,true,'pi_2');
   await record(next.id,'cs_2',42000,false,null); // Old expiry delivery cannot undo payment.
   assert.equal((await db.query('select payment_status from dogehouse_orders where id=$1',[order])).rows[0].payment_status,'paid');
-  await assert.rejects(()=>reserve(alice));
+  assert.equal((await reserve(alice)).rows[0].id,next.id,'Paid retries reuse the captured attempt');
   const refund=amount=>db.query('select record_dogehouse_refund($1,$2)',['pi_2',amount]);
   await refund(10000);await refund(5000);assert.equal((await db.query('select payment_status from dogehouse_orders where id=$1',[order])).rows[0].payment_status,'partially_refunded');
   await refund(42000);await refund(10000);assert.equal((await db.query('select payment_status from dogehouse_orders where id=$1',[order])).rows[0].payment_status,'refunded');

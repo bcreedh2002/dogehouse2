@@ -1,11 +1,11 @@
 # Isolated DogeHouse staging
 
-Status: setup code prepared and locally tested; hosted resources NOT created.
+Status (2026-10-19): DogeHouseTest1 (`jpncaudfzxqjzddyrkss`) exists and its database schema/hardening is applied. Hosted frontend, Edge secrets, authenticated signup and real Stripe/email checks remain pending.
 This branch depends on the explicit-origin fix in PR #15. Nothing here authorizes a production release.
 
 ## Isolation boundary
 
-Use one NEW Supabase project named `DogeHouse Staging`, one separate Netlify site, and a Stripe sandbox with its own test keys and webhook destination. Use synthetic builds/orders only. Do not clone customer/auth records or copy production secrets. Verify account/project identity before every administrative action. Check project cost/quota in the service UI before accepting paid resources; no paid provisioning is authorized by this guide.
+Use one NEW Supabase project named `DogeHouseTest1`, one separate Netlify site, and a Stripe sandbox with its own test keys and webhook destination. Use synthetic builds/orders only. Do not clone customer/auth records or copy production secrets. Verify account/project identity before every administrative action. Check project cost/quota in the service UI before accepting paid resources; no paid provisioning is authorized by this guide.
 
 The suggested Netlify name is `dogehouse-staging`; availability is not verified. Substitute the actual assigned origin everywhere below. A separate Netlify site keeps its stable test origin and build configuration independent from the existing production site. Its Netlify “production” deploy context means only this test site's primary branch, not DogeHouse production.
 
@@ -20,8 +20,9 @@ In the new project's SQL editor only, run these repository files in order:
 3. supabase/orders.sql
 4. supabase/order-management.sql
 5. supabase/payments.sql
+6. supabase/launch-hardening.sql
 
-These reproduce the current schema, including known payment visibility/confirmation/cancellation defects. They do not fix those defects. The full customer acceptance test must pass the follow-up corrections before a production release.
+The final hardening script corrects the dashboard contract and quote/cancellation rules. Do not rerun earlier scripts after hardening. The full customer acceptance test must pass the follow-up corrections before a production release.
 
 Create a NEW confirmed staging Auth user for salesandinfo@thedogehouse.com; the current application requires this exact owner identity. Use a distinct staging password. Add only that new project's user ID to dogehouse_owners after checking it in Auth Users. Never copy the production user's UUID. The safe lookup for a manually confirmed staging owner is:
 
@@ -37,9 +38,10 @@ Create two test customer accounts using inboxes/aliases you control and syntheti
 
 ## 2. Create the separate test frontend
 
-Create a NEW Netlify site attached to bcreedh2002/dogehouse2. Choose `setup/isolated-staging` as this site's branch. Keep the existing dogehouse.netlify.app site and its main branch untouched. Configure:
+Create a NEW Netlify site attached to bcreedh2002/dogehouse2. Choose `fix/vega-ordering-review` as this site's branch. Keep the existing dogehouse.netlify.app site and its main branch untouched. Configure:
 
-- Build command: python3 scripts/prepare-staging.py
+- Build command: python3 scripts/prepare-netlify.py
+- DOGEHOUSE_ENV: staging (required even for this separate site's production deploy context)
 - Publish directory: _site
 - Builds environment variables on THIS NEW SITE:
   - STAGING_SUPABASE_URL = the new project's https://REF.supabase.co URL
@@ -79,10 +81,11 @@ https://STAGING_PROJECT_REF.supabase.co/functions/v1/stripe-webhook
 
 Subscribe to checkout.session.completed, checkout.session.expired, charge.refunded using snapshot events and API version 2024-06-20 as used by the adapter. Set its signing secret in the NEW Supabase project. Stripe dashboard capabilities/API-version choices should be verified at setup time.
 
-Deploy submit-order, pay-order and stripe-webhook only to that NEW project. If using the CLI, supply its actual `--project-ref` explicitly on each command and check it is not the production ref above. Do not use the repository's existing deploy-order/deploy-payments workflows: they hardcode the PRODUCTION project. Do not run `supabase db push` against an existing linked project.
+Deploy submit-order, owner-order, pay-order and stripe-webhook only to that NEW project. If using the CLI, supply its actual `--project-ref` explicitly on each command and check it is not the production ref above. Do not use the repository's existing deploy-order/deploy-payments workflows: the October 23 branch revision requires an explicit matching DogeHouseTest1 reference; older revisions hardcode production. Review the checked-out workflow before any dispatch. Do not run `supabase db push` against an existing linked project.
 
 ```sh
 supabase functions deploy submit-order --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
+supabase functions deploy owner-order --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
 supabase functions deploy pay-order --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
 supabase functions deploy stripe-webhook --project-ref STAGING_PROJECT_REF --no-verify-jwt --use-api
 ```

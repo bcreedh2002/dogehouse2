@@ -6,3 +6,8 @@ __pycache__/
 
 # Local Supabase CLI metadata.
 supabase/.temp/
+
+# Local environment and visual test artifacts.
+.env
+.env.*
+browser-*.png

@@ -1,4 +1,4 @@
-# DogeHouse: GitHub Pages + Supabase
+# DogeHouse: Netlify + Supabase
 
 Stripe checkout after owner quote approval is available; see
 [PAYMENTS.md](PAYMENTS.md) for test-mode activation and operating instructions.
@@ -7,41 +7,15 @@ The site remains static. Supabase provides email/password authentication,
 confirmation and password-reset emails, and private saved doghouse builds.
 Order requests use a small Supabase Edge Function; there is no self-hosted server or SQLite dependency.
 
-## One-time launch setup
+## Hosting and launch setup
 
-1. Create a Supabase project. In its SQL editor, run [`supabase/schema.sql`](supabase/schema.sql).
-   It creates `dogehouse_builds`, enables row-level security, and permits users to
-   read, save, and delete builds owned by their authenticated account. The optional
-   owner migration below adds read-only access for the DogeHouse team.
-2. Copy the Project URL and **publishable key** from the Supabase project settings
-   (a legacy **anon** key also works). These are public browser settings.
-   Never use a secret or service-role key; those bypass database access controls.
-3. This checkout's `account-config.js` already contains the public settings you
-   provided for `lftpzfnzokjqgeteitul.supabase.co`. Commit it with the site; no
-   GitHub secret is needed. Optionally override them with repository Variables
-   `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` under **Settings → Secrets and
-   variables → Actions → Variables**.
-4. In **Settings → Pages**, select **GitHub Actions** as the source. Push the
-   prepared site files and workflow to `main`, or run **Publish DogeHouse site**
-   manually from the Actions tab after the files are on GitHub.
-5. The default project site will be `https://bcreedh2002.github.io/dogehouse2/`
-   unless you use a custom domain. In Supabase **Authentication → URL Configuration**,
-   set that address as **Site URL** and add both that address and
-   `https://bcreedh2002.github.io/dogehouse2/dogehouse-launch.html` to **Redirect URLs**.
-   If using a custom domain, configure its equivalent URLs instead.
-6. Enable Email authentication and keep **Confirm email** enabled. Configure custom
-   SMTP for public customer use; Supabase's default mail service has recipient and
-   rate restrictions. Without a suitable mail provider, customer signup and
-   password recovery cannot be treated as ready for launch.
-7. Test confirmation, password recovery, and saved builds with two separate accounts.
-   Verify each account can only list/delete its own builds, including direct REST
-   requests. Also verify anonymous requests cannot read or insert builds. Do not
-   advertise account saving as live before completing these checks.
+Canonical public site: https://dogehouse.netlify.app/. GitHub holds source and pull requests; Netlify builds `python3 scripts/prepare-netlify.py` and publishes `_site`. `netlify.toml` defines the build and security headers. The legacy Pages workflow no longer publishes. Unpublish the existing GitHub Pages site separately in repository Settings > Pages.
 
-The workflow publishes only explicitly staged public assets. It does not upload
-`.data`, `.git`, tests, or repository files. Deployment fails when public Supabase
-settings are missing or contain a secret/service-role key. Source changes and
-GitHub Pages publication are separate; preparing the workflow does not publish it.
+Follow [the release checklist](docs/vega-release.md) and [isolated staging guide](docs/staging-setup.md). For a fresh database run `schema.sql`, `owner-access.sql`, `orders.sql`, `order-management.sql`, `payments.sql`, then `launch-hardening.sql`, in that order. For an existing deployment with the first five already applied, apply only `launch-hardening.sql`; do not rerun older scripts after it.
+
+Set public `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` on the production Netlify site (the public committed configuration is a fallback). Private keys belong only in Supabase Edge secrets. Never put a secret/service-role key in a frontend variable. Configure Supabase Auth Site URL as `https://dogehouse.netlify.app/`, with root and `/dogehouse-launch.html` redirects. Keep email confirmation enabled, configure SMTP, and verify signup/recovery delivery with two accounts.
+
+Preview/branch builds require isolated `STAGING_*` variables and use `prepare-staging.py`; they must never share the production database. Set `DOGEHOUSE_ENV=staging` on the separate staging site and `DOGEHOUSE_ENV=production` on the canonical production site. The checked-in dispatcher rejects missing/unknown modes and rejects a production build on another Netlify origin or Supabase reference. Preview contexts always use isolated staging settings; the Netlify configuration file takes precedence over UI build commands.
 
 ## Local development
 
@@ -68,26 +42,16 @@ path, opens the reset dialog, and signs out after updating the password.
 
 ## Validation
 
-Install browser tooling outside the checkout and run:
-
 ```sh
-npm install --prefix /tmp/dogehouse-test-tools --cache /tmp/dogehouse-npm-cache --no-audit --no-fund playwright@1.56.1
-NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/accounts.cjs
-python3 tests/pages.py
+npm ci --ignore-scripts
+npm test
+npx playwright install chromium
+node tests/accounts.cjs
+node tests/owner-dashboard.cjs
 python3 scripts/check-supabase.py
 ```
 
-Browser tests default to `http://127.0.0.1:8000/dogehouse-launch.html`; override
-`DOGEHOUSE_TEST_URL` and `DOGEHOUSE_CHROMIUM` as needed. They exercise the real
-vendored Supabase SDK with mocked HTTPS service responses. They cover account
-confirmation, sign-in, saving/opening/deleting builds, failed requests, session
-restoration, password recovery, and mobile layout. **They do not prove live
-Supabase configuration, email delivery, or database isolation.** The launch checks
-above remain required. `scripts/check-supabase.py` performs read-only checks on
-the configured project: Email/signup availability, confirmation settings, and
-anonymous table access denial. It neither creates accounts nor sends mail.
-The staging tests verify the deployment artifact excludes
-private files and rejects unsuitable configuration.
+The first suite uses real PostgreSQL in PGlite plus mocked Auth, Stripe, and Resend handlers. Browser tests use the real vendored SDK and mocked service responses; local asset routes avoid requiring a separate test server. They do not prove hosted authentication, actual card payments/refunds, or email delivery. The staging acceptance checklist remains required. `DOGEHOUSE_CHROMIUM` selects a browser executable when needed.
 
 ## Data and maintenance
 
@@ -195,7 +159,7 @@ Enable ordering before publishing the updated site:
 3. In Supabase **Edge Functions → Secrets**, enter these values securely:
    - `RESEND_API_KEY`: the Resend sending key.
    - `ORDER_EMAIL_FROM`: `DogeHouse <orders@thedogehouse.com>`.
-   - `SITE_URL`: `https://bcreedh2002.github.io/dogehouse2/` (or the actual custom-domain site).
+   - `SITE_URL`: `https://dogehouse.netlify.app/` (or the actual custom-domain site).
    Do not paste API keys in chat or add them to browser configuration. Supabase
    automatically supplies the server-only database credentials to the function.
 4. Deploy `submit-order` from this checkout:
@@ -206,7 +170,7 @@ Enable ordering before publishing the updated site:
    Alternatively, after merging this change, create a Supabase personal access
    token in your account settings, save it as the GitHub repository Actions secret
    `SUPABASE_ACCESS_TOKEN`, and run **Deploy DogeHouse ordering** from Actions.
-   Resend credentials stay in Supabase, not in GitHub Pages. The deployment
+   Resend credentials stay in Supabase, not in the frontend. The deployment
    workflow is manual; ordinary site pushes do not redeploy this backend.
 5. Publish the site and submit one test order yourself. Verify its two images in
    the business inbox, the customer's Ordered builds tab, and the owner's
@@ -306,41 +270,12 @@ failed server identity/count/record queries, recovery and sign-out while a
 response is pending. The existing owner SQL
 tests cover the actual underlying read-only policies.
 
-## Confirming orders and tracking fulfillment
+## Quote approval, payment and fulfillment
 
-Before publishing these controls, run
-[`supabase/order-management.sql`](supabase/order-management.sql) in Supabase SQL
-Editor. It adds progress/version/update metadata and protected management/listing
-RPCs. The script can be rerun; existing order designs, prices and notification
-records remain unchanged. Keep the earlier `orders.sql` and owner-access migrations
-in place. No email credential change or Edge Function redeployment is needed.
+`launch-hardening.sql` supersedes the original management/payment RPCs. **Approve final quote** is the only confirmation path. The owner enters the immutable final total including tax/shipping; `owner-order` authorizes the confirmed salesandinfo account and database membership, approves via the caller JWT, then sends a customer quote notification to the account email. Failed/unconfigured delivery is visible and can be retried. The dashboard returns approved total and payment state from the actual SQL function.
 
-The owner dashboard offers **Confirm order** and **Cancel order**. Confirmation
-unlocks fulfillment: **Not started**, **In production**, **Ready**, **Completed**.
-Choose a stage and **Save fulfillment**. Stages can be corrected while the order
-is confirmed. Cancellation asks for confirmation, retains the record and progress,
-and is final in this interface. Completed orders cannot be cancelled without
-first correcting their fulfillment stage; confirmed orders cannot return to
-requested. Customers see confirmation/cancellation and fulfillment under
-**Ordered builds** after refreshing. No automatic customer email is sent when
-these statuses change.
+Customers pay from **Ordered builds**. Stripe receives the account email and distinct success/cancel return URLs. A redirect never marks payment paid; server reconciliation and signed webhooks do. Enable Stripe customer receipt emails in the correct test/live account settings and verify actual receipt delivery separately.
 
-Only the confirmed salesandinfo owner with database membership can call the
-management RPC. The function locks the row and checks its version before updating
-only status/progress metadata. A stale tab receives a refresh message instead of
-overwriting another update. Direct table updates remain denied to browser users,
-including the owner. Last-update time and actor are recorded in Supabase.
+Owner cancellation expires known open Stripe sessions first; SQL blocks cancellation of paid/partially refunded orders or any remaining pending attempts. Refund in Stripe and wait for the verified full-refund update before cancelling. Missing/interrupted checkout sessions require reconciliation instead of blind cancellation. A late legacy payment on a cancelled order is recorded, restores confirmed status, and raises a dashboard review flag. Completed orders cannot be cancelled through this flow.
 
-Validation:
-
-```sh
-NODE_PATH=/tmp/dogehouse-db-tests/node_modules node tests/order-management.cjs
-NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/owner-dashboard.cjs
-NODE_PATH=/tmp/dogehouse-test-tools/node_modules node tests/accounts.cjs
-```
-
-Database tests execute the actual migration and verify authorization, concurrent
-version checks, status rules, immutable snapshots, customer progress reads and
-compatibility with the older listing. Browser tests mock service responses and
-exercise the controls, conflicts, totals, session handling and customer display.
-They do not modify live orders or send real emails.
+Fulfillment stages remain **Not started**, **In production**, **Ready**, **Completed**. All changes check versions; quote/payment updates invalidate stale dashboard tabs. Customer designs and original quotes remain immutable. General fulfillment changes do not currently send customer email.

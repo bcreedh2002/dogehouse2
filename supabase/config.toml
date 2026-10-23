@@ -9,6 +9,10 @@ verify_jwt = false
 # Validates the bearer token through Supabase Auth.
 verify_jwt = false
 
+[functions.owner-order]
+# Handler verifies the confirmed owner account and SQL owner membership.
+verify_jwt = false
+
 [functions.stripe-webhook]
 # Stripe signs the raw request body; the handler verifies it.
 verify_jwt = false
